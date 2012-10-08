@@ -60,14 +60,13 @@ update_graphic_pre <- function(h, ...) {
   i <- ifelse(i>0, i, 1)
   assign("counter", i, pos=msGUI_env)
   t <- proc.time()
-  plot(intensity ~ mz, xlab="mz", data=get("dt", pos=msGUI_env), 
-       ylab="intensity", main=paste("Spectrum", i))
+  plot(get("dt", pos=msGUI_env), main=paste("Spectrum", i))
   svalue(time) <- paste("Plotting took", round((proc.time()-t)[3], 2), "seconds")
   preload(i)
 }
 
 preload <- function(i) {
-  assign("dt", list(intensity=m2[[i+1]]@intensity, mz=m2[[i+1]]@mz), 
+  assign("dt", data.frame(mz=m2[[i+1]]@mz, intensity=m2[[i+1]]@intensity), 
          pos=msGUI_env)
 }
 
