@@ -1,9 +1,33 @@
 library(gWidgets)
 options(guiToolkit = "RGtk2")
 
+###Init 
 msGUI_env <- new.env(parent=.GlobalEnv)
 assign(x="counter", value=min(m2h$index), pos=msGUI_env)
 
+### Functions
+update_graphic <- function(h, ...) {
+  i <- get("counter", pos=msGUI_env) + h$action
+  i <- ifelse(i>0, i, 1)
+  assign("counter", i, pos=msGUI_env)
+  t <- proc.time()
+  plot(m2[[i]]@intensity ~ m2[[i]]@mz, 
+       xlab="mz", ylab="intensity", main=paste("Spectrum", i))
+  svalue(time) <- paste("Plotting took", round((proc.time()-t)[3], 2), "seconds")
+  preload(i)
+}
+
+update_graphic_pre <- function(h, ...) {
+  i <- get("counter", pos=msGUI_env) + h$action
+  i <- ifelse(i>0, i, 1)
+  assign("counter", i, pos=msGUI_env)
+  t <- proc.time()
+  plot(get("dt", pos=msGUI_env), main=paste("Spectrum", i))
+  svalue(time) <- paste("Plotting took", round((proc.time()-t)[3], 2), "seconds")
+  preload(i)
+}
+
+### GUI
 window <- gwindow("msGUI", visible = FALSE)
 notebook <- gnotebook(cont = window)
 
@@ -26,26 +50,6 @@ next_button <- gbutton(text=gettext("Next"),
                        action=1,
                        cont=left_group)
 
-
-update_graphic <- function(h, ...) {
-  i <- get("counter", pos=msGUI_env) + h$action
-  i <- ifelse(i>0, i, 1)
-  assign("counter", i, pos=msGUI_env)
-  t <- proc.time()
-  plot(m2[[i]]@intensity ~ m2[[i]]@mz, 
-       xlab="mz", ylab="intensity", main=paste("Spectrum", i))
-  svalue(time) <- paste("Plotting took", round((proc.time()-t)[3], 2), "seconds")
-  preload(i)
-}
-
-# Let's try simple preloading
-
-#group_two <- ggroup(cont = notebook, label = gettext("Charts with simple preloading"))
-#left_group_two <- ggroup(cont = group_two, horizontal = FALSE) 
-#right_group_two <- ggroup(cont = group_two, horizontal = FALSE)
-
-#ggraphics(cont = right_group_two)
-
 next_button_two <- gbutton(text=gettext("Next (with preloading)"), 
                        handler=update_graphic_pre, 
                        action=1,
@@ -54,16 +58,6 @@ next_button_two <- gbutton(text=gettext("Next (with preloading)"),
 time <- glabel("", cont = left_group)
 
 assign(x="counter", value=min(m2h$index), pos=msGUI_env)
-
-update_graphic_pre <- function(h, ...) {
-  i <- get("counter", pos=msGUI_env) + h$action
-  i <- ifelse(i>0, i, 1)
-  assign("counter", i, pos=msGUI_env)
-  t <- proc.time()
-  plot(get("dt", pos=msGUI_env), main=paste("Spectrum", i))
-  svalue(time) <- paste("Plotting took", round((proc.time()-t)[3], 2), "seconds")
-  preload(i)
-}
 
 preload <- function(i) {
   assign("dt", data.frame(mz=m2[[i+1]]@mz, intensity=m2[[i+1]]@intensity), 
