@@ -1,3 +1,7 @@
+required <- c("cairoDevice", "gWidgets", "gWidgetsRGtk2")
+install <- required[!required%in%installed.packages()[, 1]]
+if(length(install)>0) install.packages(install)
+
 library(gWidgets)
 options(guiToolkit = "RGtk2")
 
@@ -13,7 +17,7 @@ update_graphic <- function(h, ...) {
   t <- proc.time()
   plot(m2[[i]]@intensity ~ m2[[i]]@mz, 
        xlab="mz", ylab="intensity", main=paste("Spectrum", i))
-  svalue(time) <- paste("Plotting took", round((proc.time()-t)[3], 2), "seconds")
+  svalue(time) <- paste("Plotting took", round((proc.time()-t)[3]*1000, 2), "ms")
   preload(i)
 }
 
@@ -23,7 +27,7 @@ update_graphic_pre <- function(h, ...) {
   assign("counter", i, pos=msGUI_env)
   t <- proc.time()
   plot(get("dt", pos=msGUI_env), main=paste("Spectrum", i))
-  svalue(time) <- paste("Plotting took", round((proc.time()-t)[3], 2), "seconds")
+  svalue(time) <- paste("Plotting took", round((proc.time()-t)[3]*1000, 2), "ms")
   preload(i)
 }
 
