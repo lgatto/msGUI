@@ -8,9 +8,11 @@ ls(.msGUIenv)
 names(mzRrampAccessors)
 
 
-par(mfrow = c(3,1))
+par(mfrow = c(4,1))
 plot(mzRrampAccessors$xic(1), type = "l")
 plot(mzRrampAccessors$xic(2), type = "l")
 plot(mzRrampAccessors$xic(NULL), type = "l") 
-
 plot(mzRrampAccessors$peaks(100), type = "l")
+
+mzRrampAccessors$expRtRange()
+## ...
