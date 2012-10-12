@@ -44,6 +44,9 @@ emptyAccessors <- function() {
 }
 
 
+makeMSnExpAccessors <- function() {
+  emptyAccessors()
+}
 
 makeMzRrampAccessors <- function() {
   mzRrampAccessors <- emptyAccessors()  
