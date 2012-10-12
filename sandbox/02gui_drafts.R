@@ -7,7 +7,8 @@ options(guiToolkit = "RGtk2")
 
 ###Init 
 msGUI_env <- new.env(parent=.GlobalEnv)
-assign(x="counter", value=min(m2h$index), pos=msGUI_env)
+#assign(x="counter", value=min(m2h$index), pos=msGUI_env)
+assign(x="counter", value=min(m2h$acquisition.number), pos=msGUI_env)
 
 ### Functions
 update_graphic <- function(h, ...) {
@@ -16,7 +17,7 @@ update_graphic <- function(h, ...) {
   assign("counter", i, pos=msGUI_env)
   t <- proc.time()
   plot(m2[[i]]@intensity ~ m2[[i]]@mz, 
-       xlab="mz", ylab="intensity", main=paste("Spectrum", i))
+       xlab="mz", ylab="intensity", main=paste("Spectrum", i), type = "h")
   svalue(time) <- paste("Plotting took", round((proc.time()-t)[3]*1000, 2), "ms")
   preload(i)
 }
@@ -26,7 +27,7 @@ update_graphic_pre <- function(h, ...) {
   i <- ifelse(i>0, i, 1)
   assign("counter", i, pos=msGUI_env)
   t <- proc.time()
-  plot(get("dt", pos=msGUI_env), main=paste("Spectrum", i))
+  plot(get("dt", pos=msGUI_env), main=paste("Spectrum", i), type = "h")
   svalue(time) <- paste("Plotting took", round((proc.time()-t)[3]*1000, 2), "ms")
   preload(i)
 }
@@ -61,7 +62,7 @@ next_button_two <- gbutton(text=gettext("Next (with preloading)"),
 
 time <- glabel("", cont = left_group)
 
-assign(x="counter", value=min(m2h$index), pos=msGUI_env)
+assign(x="counter", value=min(m2h$acquisition.number), pos=msGUI_env)
 
 preload <- function(i) {
   assign("dt", data.frame(mz=m2[[i+1]]@mz, intensity=m2[[i+1]]@intensity), 

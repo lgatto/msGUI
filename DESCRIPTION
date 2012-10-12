@@ -2,7 +2,7 @@ Package: msGUI
 Type: Package
 Title: Interactive mass spectrometry data visualisation
 Version: 0.1.0
-Author: Laurent Gatto and Michael Lawrence 
+Author: Andrius Druzinis, Michael Lawrence and Laurent Gatto
 Maintainer: Laurent Gatto <lg390@cam.ac.uk>
 Description: msGUI is a simple graphical user interface	
 	     to visualise and browse raw mass spectrometry 
