@@ -26,78 +26,88 @@ accessors <- c(## Experiment info
                "xic")
 
 ## Package environment to store private data
-.msGUIenv <- new.env(parent = emptyenv(), hash = TRUE) 
-populateMsGuiEnv <- function(filename) {
-  assign("fh", openMSfile(filename), env = .msGUIenv)
-  assign("hd", header(.msGUIenv$fh), env = .msGUIenv)
-  assign("runInfo", runInfo(.msGUIenv$fh), env = .msGUIenv)
-  lockEnvironment(.msGUIenv, bindings = TRUE)
+makeDataEnv <- function(filename) {
+  e <- new.env(parent = emptyenv(), hash = TRUE)   
+  assign("fh", openMSfile(filename), env = e)
+  assign("hd", header(e$fh), env = e)
+  assign("runInfo", runInfo(e$fh), env = e)
+  lockEnvironment(e, bindings = TRUE)
+  return(e)
+}
+
+## Initialise accessors 'not yet implemented' errors
+makeAccessors <- function(dataEnv) {
+  assignEnv <- sys.frame(-1)
+  tmp <- sapply(accessors,
+                assign, value = function(x) stop("Not yet implemented"),
+                pos = assignEnv)
   invisible(TRUE)
 }
-  
-## Initialise
-emptyAccessors <- function() {
-  acc <- lapply(1:length(accessors),
-                function(i) return(function() stop("Not yet implemented")))
-  names(acc) <- accessors
-  return(acc)
-}
 
+makeMSnExpAccessors <- makeAccessors
 
-makeMSnExpAccessors <- function() {
-  emptyAccessors()
-}
-
-makeMzRrampAccessors <- function() {
-  mzRrampAccessors <- emptyAccessors()  
+makeMzRrampAccessors <- function(dataEnv) {
+  assignEnv <- sys.frame(-1)
   ## Experiment info
-  mzRrampAccessors[["expRtRange"]] <-
-    function() c(.msGUIenv$runInfo$dStartTime, .msGUIenv$runInfo$dEndTime)
-  mzRrampAccessors[["expPrecMzRange"]] <-
-    function() {
-      pmz <- .msGUIenv$hd$precursorMZ
-      range(pmz[pmz != 0])
-    }
-  mzRrampAccessors[["nMS1"]] <-
-    function(n = 1) sum(.msGUIenv$hd$msLevel == n)
-  mzRrampAccessors[["nMS2"]] <-
-    function(n = 2) sum(.msGUIenv$hd$msLevel == n)  
+  assign("expRtRange",
+         function() c(dataEnv$runInfo$dStartTime, dataEnv$runInfo$dEndTime),
+         pos = assignEnv)
+  assign("expPrecMzRange",
+         function() {
+           pmz <- dataEnv$hd$precursorMZ
+           range(pmz[pmz != 0])
+         }, pos = assignEnv)
+  assign("nMS1",
+         function(n = 1) sum(dataEnv$hd$msLevel == n),
+         pos = assignEnv)
+  assign("nMS2",
+         function(n = 2) sum(dataEnv$hd$msLevel == n),
+         pos = assignEnv)
   ## Spectrum info
-  mzRrampAccessors[["spRtime"]] <-
-    function(i) .msGUI$hd[i, "retentionTime"]  
-  mzRrampAccessors[["spIndex"]] <-
-    function(i) .msGUI$hd[i, "acquisitionNum"]  
-  mzRrampAccessors[["spPrecMz"]] <- 
-    function(i) .msGUI$hd[i, "precursorMZ"]  
-  mzRrampAccessors[["spPrecInt"]] <-
-    function(i) .msGUI$hd[i, "precursorIntensity"]  
-  mzRrampAccessors[["spMsLevel"]] <-
-    function(i) .msGUI$hd[i, "msLevel"]  
-  mzRrampAccessors[["spPrecCharge"]] <-
-    function(i) .msGUI$hd[i, "precursorCharge"]
-  mzRrampAccessors[["spPrecScanNum"]] <-
-    function(i) .msGUI$hd[i, "precursorScanNum"]
-  mzRrampAccessors[["spBasePeakMz"]] <-
-    function(i) .msGUI$hd[i, "basePeakMZ"]
-  mzRrampAccessors[["spBasePeakInt"]] <- 
-    function(i) .msGUI$hd[i, "basePeakIntensity"]
-  mzRrampAccessors[["spPeaksCount"]] <-
-    function(i) .msGUI$hd[i, "peaksCount"]  
+  assign("spRtime",
+         function(i) dataEnv$hd[i, "retentionTime"]  ,
+         pos = assignEnv)
+  assign("spIndex",
+         function(i) dataEnv$hd[i, "acquisitionNum"],
+         pos = assignEnv)
+  assign("spPrecMz", 
+         function(i) dataEnv$hd[i, "precursorMZ"],
+         pos = assignEnv)
+  assign("spPrecInt",
+         function(i) dataEnv$hd[i, "precursorIntensity"] ,
+         pos = assignEnv)
+  assign("spMsLevel",
+         function(i) dataEnv$hd[i, "msLevel"] ,
+         pos = assignEnv)
+  assign("spPrecCharge",
+         function(i) dataEnv$hd[i, "precursorCharge"],
+         pos = assignEnv)
+  assign("spPrecScanNum",
+         function(i) dataEnv$hd[i, "precursorScanNum"],
+         pos = assignEnv)
+  assign("spBasePeakMz",
+         function(i) dataEnv$hd[i, "basePeakMZ"],
+         pos = assignEnv)
+  assign("spBasePeakInt", 
+         function(i) dataEnv$hd[i, "basePeakIntensity"],
+         pos = assignEnv)
+  assign("spPeaksCount",
+         function(i) dataEnv$hd[i, "peaksCount"],
+         pos = assignEnv)
   ## Plotting
-  mzRrampAccessors[["peaks"]] <-
-    function(i) peaks(.msGUIenv$fh, i)
-  mzRrampAccessors[["xic"]] <-
-    function(n = 1) {    
-      if (is.null(n)) {
-        lev <- TRUE
-      } else {
-        lev <- .msGUIenv$hd$msLevel %in% n
-      }
-      .msGUIenv$hd[lev, c("retentionTime",
-                          "totIonCurrent")]
-    }
-  return(mzRrampAccessors)
+  assign("peaks",
+         function(i) mzR::peaks(dataEnv$fh, i),
+         pos = assignEnv)
+  assign("xic",
+         function(n = 1) {    
+           if (is.null(n)) {
+             lev <- TRUE
+           } else {
+             lev <- dataEnv$hd$msLevel %in% n
+           }
+           dataEnv$hd[lev, c("retentionTime",
+                               "totIonCurrent")]
+         }, pos = assignEnv)
+  invisible(TRUE)
 }
-
-
 
