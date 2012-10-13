@@ -3,10 +3,8 @@ source("../R/middle-layer.R")
 
 filename <- "/home/lgatto/Data/Velos/2010_07_TMTspikes/TMT_Erwinia_1uLSike_Top10HCD_isol2_45stepped_60min_01.mzXML"
 
-e <- makeDataEnv(filename)
-makeMzRrampAccessors(e)
+makeMzRrampAccessors(filename)
 
-ls(e)
 ls()
 
 expRtRange()

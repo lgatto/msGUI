@@ -1,7 +1,6 @@
 ## We want to be able to access data from the following backends
 ## - raw data files via mzRramp instances - mzR package
 ## - raw experiments via MSnExp instances - MSnbase package
-
 backends <- c("mzRramp", "MSnExp")
 
 ## List of data accessors that we need
@@ -23,10 +22,18 @@ accessors <- c(## Experiment info
                "spPeaksCount",
                ## Plotting
                "peaks",
-               "xic")
+               "xic",
+               ## Housekeeing
+               "close")
 
-## Package environment to store private data
 makeDataEnv <- function(filename) {
+  ## Package environment to store private data
+  ## Arguments
+  ##  filename: name of a file to be opened by
+  ##            mzR::openMSfile
+  ## Value:
+  ##  An environment storing the filehandle,
+  ##  the data header and runInfo
   e <- new.env(parent = emptyenv(), hash = TRUE)   
   assign("fh", openMSfile(filename), env = e)
   assign("hd", header(e$fh), env = e)
@@ -35,19 +42,33 @@ makeDataEnv <- function(filename) {
   return(e)
 }
 
-## Initialise accessors 'not yet implemented' errors
-makeAccessors <- function(dataEnv) {
-  assignEnv <- sys.frame(-1)
+
+makeAccessors <- function(assignEnv) {
+  ## Initialise accessors to 'not yet implemented'
+  ## Arguments:
+  ##  assignEnv: an environment, where the empty  
+  ##             default accessors will be assigned
+  ##             to. If missing, defaults to calling
+  ##             environment.
+  ## Value:
+  ##  invisibly returns TRUE
+  if (missing(assignEnv))
+    assignEnv <- sys.frame(-1)
   tmp <- sapply(accessors,
                 assign, value = function(x) stop("Not yet implemented"),
                 pos = assignEnv)
   invisible(TRUE)
 }
 
-makeMSnExpAccessors <- makeAccessors
 
-makeMzRrampAccessors <- function(dataEnv) {
+makeMzRrampAccessors <- function(filename) {
+  ## Creates the appropriate raw data file accessors
+  ## Arguments:
+  ##  filename: a character (of length 1), containing
+  ##            the name of the raw file to be accessed
+  dataEnv <- makeDataEnv(filename)
   assignEnv <- sys.frame(-1)
+  makeAccessors(assignEnv)
   ## Experiment info
   assign("expRtRange",
          function() c(dataEnv$runInfo$dStartTime, dataEnv$runInfo$dEndTime),
@@ -108,6 +129,15 @@ makeMzRrampAccessors <- function(dataEnv) {
            dataEnv$hd[lev, c("retentionTime",
                                "totIonCurrent")]
          }, pos = assignEnv)
+  assign("close",
+         function() mzR::close(dataEnv$fh))
   invisible(TRUE)
 }
 
+
+makeMSnExpAccessors <- function() {
+  ## Creates the MSnExp accessors - currently default ones
+  assignEnv <- sys.frame(-1)
+  makeAccessors(assignEnv)
+  invisible(TRUE)
+}
