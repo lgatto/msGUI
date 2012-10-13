@@ -5,6 +5,9 @@ filename <- "/home/lgatto/Data/Velos/2010_07_TMTspikes/TMT_Erwinia_1uLSike_Top10
 
 makeMzRrampAccessors(filename)
 
+filename2 <- "/home/lgatto/Data/Velos/SpikedIn/TMT_Erwinia_1uLSike_Top8CID_HCD_50CE_60min_01.mzXML"
+makeMzRrampAccessors(filename2)
+
 ls()
 
 expRtRange()

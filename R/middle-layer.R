@@ -130,7 +130,8 @@ makeMzRrampAccessors <- function(filename) {
                                "totIonCurrent")]
          }, pos = assignEnv)
   assign("close",
-         function() mzR::close(dataEnv$fh))
+         function() mzR::close(dataEnv$fh),
+         pos = assignEnv)
   invisible(TRUE)
 }
 
