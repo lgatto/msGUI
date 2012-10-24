@@ -61,13 +61,14 @@ makeAccessors <- function(assignEnv) {
 }
 
 
-makeMzRrampAccessors <- function(filename) {
+makeMzRrampAccessors <- function(filename, assignEnv) {
   ## Creates the appropriate raw data file accessors
   ## Arguments:
   ##  filename: a character (of length 1), containing
   ##            the name of the raw file to be accessed
   dataEnv <- makeDataEnv(filename)
-  assignEnv <- sys.frame(-1)
+  if (missing(assignEnv)) 
+    assignEnv <- sys.frame(-1)
   makeAccessors(assignEnv)
   ## Experiment info
   assign("expRtRange",
