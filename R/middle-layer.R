@@ -19,6 +19,8 @@ accessors <- c(## Experiment info
                "spPrecScanNum",
                "spBasePeakMz",
                "spBasePeakInt",
+               "spLowMZ", 
+               "spHighMZ",
                "spPeaksCount",
                ## Plotting
                "peaks",
@@ -110,6 +112,12 @@ makeMzRrampAccessors <- function(filename, assignEnv) {
   assign("spBasePeakMz",
          function(i) dataEnv$hd[i, "basePeakMZ"],
          pos = assignEnv)
+  assign("spLowMZ",
+         function(i) dataEnv$hd[i, "lowMZ"],
+         pos = assignEnv)
+  assign("spHighMZ",
+         function(i) dataEnv$hd[i, "highMZ"],
+         pos = assignEnv)
   assign("spBasePeakInt", 
          function(i) dataEnv$hd[i, "basePeakIntensity"],
          pos = assignEnv)
@@ -121,14 +129,15 @@ makeMzRrampAccessors <- function(filename, assignEnv) {
          function(i) mzR::peaks(dataEnv$fh, i),
          pos = assignEnv)
   assign("xic",
-         function(n = 1) {    
+         function(n = 1, basePeaks=FALSE) {    
            if (is.null(n)) {
              lev <- TRUE
            } else {
              lev <- dataEnv$hd$msLevel %in% n
            }
            dataEnv$hd[lev, c("retentionTime",
-                               "totIonCurrent")]
+                               ifelse(basePeaks, "basePeakIntensity", 
+                                                 "totIonCurrent"))]
          }, pos = assignEnv)
   assign("close",
          function() mzR::close(dataEnv$fh),
