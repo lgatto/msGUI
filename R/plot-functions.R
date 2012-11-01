@@ -40,6 +40,7 @@ plotSpectrum <- function() {
                             xlim=c(min(spLowMZ()[spMsLevel()==spMsLevel(index)]), 
                                    max(spHighMZ()[spMsLevel()==spMsLevel(index)]))) 
   text(x=mx[, 1], y=mx[, 2]/pksmax, labels=round(mx[, 2], digits=3), col="grey50", adj=c(0, 0))
+  abline(h=0, col="grey50")
   time <- proc.time() - time
   
   cat("\nspectrum:", dim(pks)[1], "data points plotted in", time[3]*1000, "miliseconds")
