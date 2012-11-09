@@ -20,6 +20,7 @@ wrapper <- function(filename=NULL, device="png") {
   environment(plotSpectrum) <- env  
   environment(plotSpectrumGraph) <- env 
   environment(plotChromatogram) <- env 
+  environment(buttonSwitch) <- env
   
   drawMain(env)
   initialiseGUI()
@@ -28,7 +29,6 @@ wrapper <- function(filename=NULL, device="png") {
     makeMzRrampAccessors(filename, env)
     updateExperiment(env)
   }   
-  browser()
 }
 
 updateExperimentInfo <- function() {
@@ -66,26 +66,40 @@ updateSpectrum <- function(h=list(action=0), ...) {
   svalue(specInfo$pmz) <- round(spPrecMz(index), digits=digits)
   svalue(specInfo$int) <- round(spPrecInt(index), digits=digits)
   
-  # If current spectra selection has a single spectrum, both buttons disabled
-  if(length(currSequence)==1) {
-    enabled(buttonLeft) <- FALSE
-    enabled(buttonRight) <- FALSE      
-  } else 
-    # If we have multiple spectra and the first is current
-    if(counter==1) {
-      enabled(buttonLeft) <- FALSE
-      enabled(buttonRight) <- TRUE
-    } else 
-      # ... the last one is current
-      if(counter==length(currSequence)) {
-        enabled(buttonLeft) <- TRUE
-        enabled(buttonRight) <- FALSE
-      } else {
-        enabled(buttonLeft) <- TRUE
-        enabled(buttonRight) <- TRUE
-      }
+  buttonSwitch(FALSE)
   plotSpectrum()
   plotXIC()
+  buttonSwitch()
+}
+
+buttonSwitch <- function(action=TRUE) {
+  # (Selectively) turn on Next/Previous buttons
+  if(action) {    
+    # If current spectra selection has a single spectrum, both buttons disabled
+    if(length(currSequence)==1) {
+      enabled(buttonLeft) <- FALSE
+      enabled(buttonRight) <- FALSE      
+    } else 
+      # If we have multiple spectra and the first is current
+      if(counter==1) {
+        enabled(buttonLeft) <- FALSE
+        enabled(buttonRight) <- TRUE
+      } else 
+        # ... the last one is current...
+        if(counter==length(currSequence)) {
+          enabled(buttonLeft) <- TRUE
+          enabled(buttonRight) <- FALSE
+          # ...or we're in the middle
+        } else {
+          enabled(buttonLeft) <- TRUE
+          enabled(buttonRight) <- TRUE
+        }
+  } else {
+    
+    enabled(buttonLeft) <- FALSE
+    enabled(buttonRight) <- FALSE
+    
+  }
 }
 
 openFileHandler <- function(h, ...) {
