@@ -75,9 +75,9 @@ plotSpectrum <- function() {
       
     } else {
       
-      plotBottom <<- tkrplot(getToolkitWidget(groupPlots), 
+      plotTop <<- tkrplot(getToolkitWidget(groupPlots), 
                      fun = plotSpectrumGraph)
-      add(groupPlots, plotBottom)
+      add(groupPlots, plotTop)
       
       plotTopDrawn <<- TRUE
       

@@ -114,7 +114,10 @@ openFileHandler <- function(h, ...) {
 
 drawMain <- function(env) {
   
-  if(device=="tkrplot") options(guiToolkit = "tcltk")
+  if(device=="tkrplot") {
+    options(guiToolkit = "tcltk")
+    require(tkrplot)
+  }
   
   # Window and structure
   env$msGUIWindow <- gwindow("msGUI", visible=FALSE)
