@@ -14,7 +14,7 @@ plotXIC <- function() {
     
   } else if(device=="cairo") {
     
-    visible(plotTop) <- TRUE 
+    visible(plotBottom) <- TRUE 
     plotChromatogram()    
     
   } else if(device=="tkrplot") {
