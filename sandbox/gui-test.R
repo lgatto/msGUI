@@ -12,8 +12,11 @@ options(guiToolkit = "RGtk2")
 
 
 # Simply
-wrapper()
+# wrapper()
 
 # # or
-# filename <- "d:/Dropbox/Documents/cambridge/r project/Data/TMT_Erwinia_1uLSike_Top10HCD_isol2_45stepped_60min_01.mzXML"
-# wrapper(filename)
+filename <- "d:/Dropbox/Documents/cambridge/r project/Data/TMT_Erwinia_1uLSike_Top10HCD_isol2_45stepped_60min_01.mzXML"
+wrapper(filename, device="png")
+wrapper(filename, device="cairo")
+wrapper(filename, device="tkrplot")
+wrapper(filename, device="gimage")

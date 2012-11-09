@@ -1,4 +1,4 @@
-wrapper <- function(filename=NULL) {  
+wrapper <- function(filename=NULL, device="png") {  
   
   env <- environment()
   
@@ -18,6 +18,8 @@ wrapper <- function(filename=NULL) {
   environment(initialiseGUI) <- env
   environment(plotXIC) <- env
   environment(plotSpectrum) <- env  
+  environment(plotSpectrumGraph) <- env 
+  environment(plotChromatogram) <- env 
   
   drawMain(env)
   initialiseGUI()
@@ -26,6 +28,7 @@ wrapper <- function(filename=NULL) {
     makeMzRrampAccessors(filename, env)
     updateExperiment(env)
   }   
+  browser()
 }
 
 updateExperimentInfo <- function() {
@@ -97,6 +100,8 @@ openFileHandler <- function(h, ...) {
 
 drawMain <- function(env) {
   
+  if(device=="tkrplot") options(guiToolkit = "tcltk")
+  
   # Window and structure
   env$msGUIWindow <- gwindow("msGUI", visible=FALSE)
   env$groupMain <- ggroup(container=env$msGUIWindow, horizontal=FALSE, expand=TRUE)
@@ -104,7 +109,7 @@ drawMain <- function(env) {
   env$groupMiddle <- ggroup(container=env$groupMain, expand=TRUE)
   env$groupMiddleLeft <- ggroup(container=env$groupMiddle, horizontal=FALSE, spacing=0, expand=TRUE)
   env$groupMiddleRight <- gframe(container=env$groupMiddle, horizontal=FALSE, expand=TRUE)
-  env$groupPlots <- gWidgets::gpanedgroup(container=env$groupMiddleRight, horizontal=FALSE, expand=TRUE)
+  env$groupPlots <- gpanedgroup(container=env$groupMiddleRight, horizontal=FALSE, expand=TRUE)
   
   ## Top group
   env$buttonOpenFile <- gbutton("Open file", container=env$groupUpper, 
@@ -204,11 +209,22 @@ drawMain <- function(env) {
   env$buttonRight <- gbutton(text=gettext("Next"), handler=env$updateSpectrum, 
                              action=1, cont=env$groupLeftButtons)
   
-  env$plotTop <- ggraphics(container=env$groupPlots, width=500, height=250, ps=12, dpi=72)
-  env$plotBottom <- ggraphics(container=env$groupPlots, width=500, height=250, ps=12, dpi=72)
+  if(any(c("cairo", "png")==device)) {
+    
+    env$plotTop <- ggraphics(container=env$groupPlots, width=500, height=250, ps=12, dpi=72)
+    env$plotBottom <- ggraphics(container=env$groupPlots, width=500, height=250, ps=12, dpi=72)
+    
+  } else if(device=="gimage"){
+  
+    env$plotTop <- gimage(container=env$groupPlots)
+    env$plotBottom <- gimage(container=env$groupPlots)
+    
+  } else if(device=="tkrplot") {
+    
+    plotTopDrawn <<- plotBottomDrawn <<- FALSE
+    
+  } else stop("Unimplemented device!")
 
-#   env$plotTop <- gimage(container=env$groupPlots)
-#   env$plotBottom <- gimage(container=env$groupPlots)
   
   lapply(env$headings, function(x) font(x) <- env$textHead)
   lapply(env$regular, function(x) font(x) <- env$textReg)
@@ -218,10 +234,12 @@ drawMain <- function(env) {
   lapply(env$filterInfo, function(x) font(x) <- env$textReg)
   lapply(env$separator, function(x) font(x) <- list(size=4))
   
-  handlerClick = function(h,...) cat("\nclicked on:", c(h$x, h$y)/10^100) 
-  addhandlerclicked(env$plotBottom, handler=handlerClick)
-  addhandlerclicked(env$plotTop, handler=handlerClick)
-  
+  if(device!="tkrplot") {    
+    handlerClick = function(h,...) cat("\nclicked on:", c(h$x, h$y)/10^100) 
+    addHandlerClicked(env$plotBottom, handler=handlerClick)
+    addHandlerClicked(env$plotTop, handler=handlerClick)
+  }
+
   env$filterSpectraHandlerIDs <- lapply(env$filterInfo, addHandlerChanged, handler=filterSpectra)
   
 }
