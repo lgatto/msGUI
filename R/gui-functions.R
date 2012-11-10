@@ -15,6 +15,7 @@ wrapper <- function(filename=NULL, device="png") {
   environment(filterReset) <- env
   environment(filterSpectra) <- env
   environment(filterSwitch) <- env
+  environment(clickSwitch) <- env
   environment(initialiseGUI) <- env
   environment(plotXIC) <- env
   environment(plotSpectrum) <- env  
@@ -66,10 +67,27 @@ updateSpectrum <- function(h=list(action=0), ...) {
   svalue(specInfo$pmz) <- round(spPrecMz(index), digits=digits)
   svalue(specInfo$int) <- round(spPrecInt(index), digits=digits)
   
+  # Turn off buttons, click handlers and filters while drawing
   buttonSwitch(FALSE)
+  filterSwitch(FALSE)
+  clickSwitch(FALSE)  
+  
   plotSpectrum()
-  plotXIC()
-  buttonSwitch()
+  plotXIC() 
+  
+  clickSwitch(TRUE)
+  buttonSwitch(TRUE)
+  filterSwitch(TRUE)
+}
+
+clickSwitch <- function(on) {
+  if(on) {
+    mapply(unblockHandler, list(plotBottom, plotTop), clickHandlerIDs) 
+    cat("\nClicking enabled")
+  } else {
+    mapply(blockHandler, list(plotBottom, plotTop), clickHandlerIDs) 
+    cat("\nClicking disabled")   
+  }
 }
 
 buttonSwitch <- function(action=TRUE) {
@@ -250,11 +268,24 @@ drawMain <- function(env) {
   lapply(env$specInfo, function(x) font(x) <- env$textReg)
   lapply(env$filterInfo, function(x) font(x) <- env$textReg)
   lapply(env$separator, function(x) font(x) <- list(size=4))
-  
+    
   if(device!="tkrplot") {    
-    handlerClick = function(h,...) cat("\nclicked on:", c(h$x, h$y)/10^100) 
-    addHandlerClicked(env$plotBottom, handler=handlerClick)
-    addHandlerClicked(env$plotTop, handler=handlerClick)
+    handlerClickGeneric = function(h,...) {
+      cat("\nclicked on:", c(h$x, h$y))
+    }
+    handlerClickXIC = function(h,...) {
+      cat("\nclicked on:", c(h$x, h$y))     
+      
+      prevCounter <- counter
+      counter <<- which.min(abs(spRtime(currSequence) - h$x))
+      
+      # update graphs if index has changed
+      if(prevCounter!=counter) updateSpectrum()      
+      
+    }
+    env$clickHandlerIDs <- list()
+    env$clickHandlerIDs[[1]] <- addHandlerClicked(env$plotBottom, handler=handlerClickXIC)
+    env$clickHandlerIDs[[2]] <- addHandlerClicked(env$plotTop, handler=handlerClickGeneric)
   }
 
   env$filterSpectraHandlerIDs <- lapply(env$filterInfo, addHandlerChanged, handler=filterSpectra)
