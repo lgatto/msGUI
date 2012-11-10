@@ -42,7 +42,7 @@ plotXIC <- function() {
     
     dev.off()
     
-    svalue(plotTop) <- filename 
+    svalue(plotBottom) <- filename 
     
   }
   
