@@ -102,10 +102,24 @@ plotChromatogram <- function() {
   
   dt <- xic(n=c(1, 2)[c(svalue(filterInfo$ms1), svalue(filterInfo$ms2))], 
             FALSE)
-  par(mar=c(3,3,.5,1), mgp=c(2,.7,0), tck=-.01, bty="n", lab=c(5, 3, 7), las=0)
+  dtmax <- max(dt[, 2])
   
-  time <- system.time({plot(dt, type = "l"); 
-                       abline(v=spRtime(index), col="red", lty=3)})
+  dt[, 2] <- dt[, 2]/dtmax
+  
+  par(mar=c(3,3,0,1), mgp=c(2,0.45,0), tck=-.01, bty="n", lab=c(5, 3, 7), 
+      adj=.5, las=1, cex=0.75)
+  
+  time <- proc.time()
+  
+  plot(dt, type = "l", ylim=c(0, 1.075), xlab="Retention time", ylab="Total ion count")
+#   abline(v=spRtime(index), col="red", lty=3)
+  lines(x=rep(spRtime(index), 2), y=c(0, 1), col="red", lty=3)
+  
+  par(cex=.75, adj=0)
+  text(x=min(dt[, 1]), y=1.075, 
+       labels=paste("Max total ions ", pksmax))
+  
+  time <- proc.time() - time
   
   cat("\nxic:", dim(dt)[1], "data points plotted in", 
       time[3]*1000, "miliseconds")
@@ -120,14 +134,21 @@ plotSpectrumGraph <- function() {
   pks[, 2] <- pks[, 2]/pksmax
   
   time <- proc.time()
-  par(mar=c(3,3,1,1), mgp=c(2,.7,0), tck=-.01, bty="n", lab=c(5, 3, 7), las=1)
-  plot(pks, xlab="Intensity", ylab="M/Z", 
+  
+  par(mar=c(3,3,0,1), mgp=c(2,0.45,0), tck=-.01, bty="n", lab=c(5, 3, 7), 
+      adj=.5, las=1, cex=0.75)
+  plot(pks, xlab="Mass to charge ratio (M/Z)", ylab="Intensity", 
        type = ifelse(spMsLevel(index)==1, "l", "h"), 
        xlim=c(min(spLowMZ()[spMsLevel()==spMsLevel(index)]), 
-              max(spHighMZ()[spMsLevel()==spMsLevel(index)]))) 
-  text(x=mx[, 1], y=mx[, 2]/pksmax, labels=round(mx[, 1], digits=3), col="grey50", adj=c(0, 0))
-  text(x=0, y=1.05, labels=mx[1, 2])
+              max(spHighMZ()[spMsLevel()==spMsLevel(index)])), 
+       ylim=c(0, 1.075)) 
+  text(x=mx[, 1], y=mx[, 2]/pksmax, labels=round(mx[, 1], digits=3), 
+       col="grey50", adj=c(0, 0))
+  par(cex=.75, adj=0)
+  text(x=min(spLowMZ()[spMsLevel()==spMsLevel(index)]), y=1.075, 
+       labels=paste("Base peak intensity ", pksmax))
   abline(h=0, col="grey50")
+  
   time <- proc.time() - time
   
   cat("\nspectrum:", dim(pks)[1], "data points plotted in", time[3]*1000, "miliseconds")
