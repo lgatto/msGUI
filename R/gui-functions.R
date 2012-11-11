@@ -22,6 +22,7 @@ wrapper <- function(filename=NULL, device="png") {
   environment(plotSpectrumGraph) <- env 
   environment(plotChromatogram) <- env 
   environment(buttonSwitch) <- env
+  environment(plotSpectrumZoom) <- env
   
   drawMain(env)
   initialiseGUI()
@@ -269,12 +270,29 @@ drawMain <- function(env) {
   lapply(env$filterInfo, function(x) font(x) <- env$textReg)
   lapply(env$separator, function(x) font(x) <- list(size=4))
     
+  drawZoom <- function(env) {
+    env$zoomWindow <- gwindow("Spectrum", visible=TRUE, 
+                              handler=function(h, ...) plotSpectrum())
+    env$groupZoomMain <- ggroup(container=env$zoomWindow, horizontal=FALSE, expand=TRUE)
+    env$plotZoom <- ggraphics(400, 400, container=env$groupZoomMain)
+  }
+  
+  
   if(device!="tkrplot") {    
     handlerClickGeneric = function(h,...) {
       cat("\nclicked on:", c(h$x, h$y))
+    }   
+    
+    handlerClickSpectrum = function(h,...) {
+      cat("\nx:", h$x, " y: ", h$y)
+      plotSpectrum(zoom=h)
+      drawZoom(env)
+      visible(env$plotZoom) <- TRUE 
+      plotSpectrumZoom(h)
     }
+    
     handlerClickXIC = function(h,...) {
-      cat("\nclicked on:", c(h$x, h$y))     
+#       cat("\nclicked on:", c(h$x, h$y)) 
       
       prevCounter <- counter
       counter <<- which.min(abs(spRtime(currSequence) - h$x))
@@ -285,7 +303,7 @@ drawMain <- function(env) {
     }
     env$clickHandlerIDs <- list()
     env$clickHandlerIDs[[1]] <- addHandlerClicked(env$plotBottom, handler=handlerClickXIC)
-    env$clickHandlerIDs[[2]] <- addHandlerClicked(env$plotTop, handler=handlerClickGeneric)
+    env$clickHandlerIDs[[2]] <- addHandlerChanged(env$plotTop, handler=handlerClickSpectrum)
   }
 
   env$filterSpectraHandlerIDs <- lapply(env$filterInfo, addHandlerChanged, handler=filterSpectra)

@@ -48,14 +48,14 @@ plotXIC <- function() {
   
 }
 
-plotSpectrum <- function() {
+plotSpectrum <- function(zoom=NULL) {
   
   if(device=="png") {
     
     filename <- tempfile(fileext=".png")
     png(filename, width=500, height=250)
     
-    plotSpectrumGraph()
+    plotSpectrumGraph(zoom=zoom)
     
     dev.off()
     
@@ -65,7 +65,7 @@ plotSpectrum <- function() {
   } else if(device=="cairo") {
     
     visible(plotTop) <- TRUE 
-    plotSpectrumGraph()    
+    plotSpectrumGraph(zoom=zoom)    
     
   } else if(device=="tkrplot") {
     
@@ -88,7 +88,7 @@ plotSpectrum <- function() {
     filename <- tempfile(fileext=".png")
     png(filename, width=500, height=250)
     
-    plotSpectrumGraph()
+    plotSpectrumGraph(zoom=zoom)
     
     dev.off()
     
@@ -117,7 +117,7 @@ plotChromatogram <- function() {
   
   par(cex=.75, adj=0)
   text(x=min(dt[, 1]), y=1.075, 
-       labels=paste("Max total ions ", pksmax))
+       labels=paste("Max total ions ", dtmax))
   
   time <- proc.time() - time
   
@@ -125,7 +125,7 @@ plotChromatogram <- function() {
       time[3]*1000, "miliseconds")
 }
 
-plotSpectrumGraph <- function() {
+plotSpectrumGraph <- function(zoom=NULL) {
   
   pks <- peaks(index)
   pksmax <- max(pks[, 2])
@@ -148,9 +148,30 @@ plotSpectrumGraph <- function() {
   text(x=min(spLowMZ()[spMsLevel()==spMsLevel(index)]), y=1.075, 
        labels=paste("Base peak intensity ", pksmax))
   abline(h=0, col="grey50")
+  if(!is.null(zoom)) {
+    lines(zoom$x[c(1, 1, 2, 2, 1)], zoom$y[c(1, 2, 2, 1, 1)], 
+          col="grey25", lty=3)
+  }
   
   time <- proc.time() - time
   
   cat("\nspectrum:", dim(pks)[1], "data points plotted in", time[3]*1000, "miliseconds")
+  
+}
+
+plotSpectrumZoom <- function(limits=NULL) {
+  pks <- peaks(index)
+  pksmax <- max(pks[, 2])
+  
+  mx <- pks[order(pks[, 2], decreasing=TRUE), ][1:5, ]
+  pks[, 2] <- pks[, 2]/pksmax
+  
+  par(mar=c(2,2,0,1), mgp=c(2,0.45,0), tck=-.01, bty="n", lab=c(5, 3, 7), 
+      adj=.5, las=1, cex=0.75)
+  plot(pks, xlab="Mass to charge ratio (M/Z)", ylab="Intensity", 
+       type = ifelse(spMsLevel(index)==1, "l", "h"), 
+       xlim=limits$x, ylim=limits$y) 
+  text(x=mx[, 1], y=mx[, 2]/pksmax, labels=round(mx[, 1], digits=3), 
+       col="grey50", adj=c(0, 0))
   
 }
