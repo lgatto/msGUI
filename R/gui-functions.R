@@ -24,6 +24,8 @@ wrapper <- function(filename=NULL, device="png") {
   environment(buttonSwitch) <- env
   environment(plotSpectrumZoom) <- env
   
+  parSave <- par()
+  
   drawMain(env)
   initialiseGUI()
   
@@ -271,31 +273,58 @@ drawMain <- function(env) {
   lapply(env$separator, function(x) font(x) <- list(size=4))
     
   drawZoom <- function(env) {
-    env$zoomWindow <- gwindow("Spectrum", visible=TRUE, 
+    env$zoomWindow <- gwindow("Spectrum fragment", visible=TRUE, 
                               handler=function(h, ...) plotSpectrum())
     env$groupZoomMain <- ggroup(container=env$zoomWindow, horizontal=FALSE, expand=TRUE)
-    env$plotZoom <- ggraphics(400, 400, container=env$groupZoomMain)
+    env$plotZoom <- ggraphics(width=400, height=400, dpi=72, ps=8, container=env$groupZoomMain)
+  }  
+  
+  fixX <- function(x, lower, upper) {
+    if(device=="png") {
+      ((x + .04) / 1.08 - 40/500) * 500 / (500 - 40 - 20) * (upper - lower) + lower 
+    } else x
   }
   
+  fixY <- function(x, lower, upper) {
+    if(device=="png") {
+      ((x + .04) / 1.08 - 40/250) * 250 / (250 - 40 - 22) * (upper - lower) + lower
+    } else x
+  }
   
   if(device!="tkrplot") {    
     handlerClickGeneric = function(h,...) {
       cat("\nclicked on:", c(h$x, h$y))
-    }   
+    } 
     
     handlerClickSpectrum = function(h,...) {
-      cat("\nx:", h$x, " y: ", h$y)
-      plotSpectrum(zoom=h)
+      spmin <- min(spLowMZ()[spMsLevel()==spMsLevel(index)])
+      spmax <- max(spHighMZ()[spMsLevel()==spMsLevel(index)])
+      cat("\nx:", h$x, "y: ", h$y, 
+          "  fixed: x:", fixX(h$x, spmin, spmax), 
+          "y:", fixY(h$y, 0, 1))
+      
+      plotSpectrum(zoom=list(x=fixX(h$x, spmin, spmax), 
+                             y=fixY(h$y, 0, 1)))
       drawZoom(env)
       visible(env$plotZoom) <- TRUE 
-      plotSpectrumZoom(h)
+      plotSpectrumZoom(list(x=fixX(h$x, spmin, spmax), 
+                            y=fixY(h$y, 0, 1)))
     }
     
+    
+    
     handlerClickXIC = function(h,...) {
-#       cat("\nclicked on:", c(h$x, h$y)) 
+      xicrange <- range(xic(n=c(1, 2)[c(svalue(filterInfo$ms1), svalue(filterInfo$ms2))], 
+                            FALSE)[, 1])
+      cat("\nXIC clicked on:", c(h$x, h$y), "  fixed x:", fixX(h$x, 
+                                                             xicrange[1], 
+                                                             xicrange[2])) 
       
       prevCounter <- counter
-      counter <<- which.min(abs(spRtime(currSequence) - h$x))
+      
+      counter <<- which.min(abs(spRtime(currSequence) - fixX(h$x, 
+                                                             xicrange[1], 
+                                                             xicrange[2])))
       
       # update graphs if index has changed
       if(prevCounter!=counter) updateSpectrum()      

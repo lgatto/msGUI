@@ -10,8 +10,14 @@ plotXIC <- function() {
     dev.off()
     
     visible(plotBottom) <- TRUE 
-    grid::grid.raster(readPNG(filename))
+#     grid::grid.raster(readPNG(filename))
+    par(mar=rep(0, 4))
+    plot(x=c(0, 1), y=c(0, 1), col="white", , bg="grey10", axes=FALSE)
+    text(x=.5, y=.5, labels="Refreshing...")
     
+    lim <- par()
+    rasterImage(readPNG(filename), lim$usr[1], lim$usr[3], lim$usr[2], lim$usr[4], interpolate=FALSE)
+        
   } else if(device=="cairo") {
     
     visible(plotBottom) <- TRUE 
@@ -60,7 +66,23 @@ plotSpectrum <- function(zoom=NULL) {
     dev.off()
     
     visible(plotTop) <- TRUE 
-    grid::grid.raster(readPNG(filename))
+#     grid::grid.raster(readPNG(filename), width=1, height=1) # Not specifying 
+    # whidth and height results in handlerChanged retrieving NaN and Inf 
+    # coordinates. 
+    
+    # Correction: specifying these does not help after all. The reason for 
+    # occasional bad coordinates is not clear. 
+    
+    # Another method without package:grob. Also works but graphs 
+    # flicker when reloading which is not super amazing.
+    
+    par(mar=rep(0, 4))
+    plot(x=c(0, 1), y=c(0, 1), col="white", , bg="grey10", axes=FALSE)
+    text(x=.5, y=.5, labels="Refreshing...")
+
+    lim <- par()
+    rasterImage(readPNG(filename), lim$usr[1], lim$usr[3], lim$usr[2], lim$usr[4], interpolate=FALSE)
+    
     
   } else if(device=="cairo") {
     
@@ -160,18 +182,19 @@ plotSpectrumGraph <- function(zoom=NULL) {
 }
 
 plotSpectrumZoom <- function(limits=NULL) {
+  cat("\nlimits:", limits$x, limits$y)
   pks <- peaks(index)
   pksmax <- max(pks[, 2])
   
-  mx <- pks[order(pks[, 2], decreasing=TRUE), ][1:5, ]
+#   mx <- pks[order(pks[, 2], decreasing=TRUE), ][1:5, ]
   pks[, 2] <- pks[, 2]/pksmax
   
-  par(mar=c(2,2,0,1), mgp=c(2,0.45,0), tck=-.01, bty="n", lab=c(5, 3, 7), 
-      adj=.5, las=1, cex=0.75)
+  par(mar=rep(.1, 4), mgp=c(3,1,0), tck=-.01, bty="n", lab=c(5, 3, 7), 
+      adj=.5, las=1, cex=0.5)
   plot(pks, xlab="Mass to charge ratio (M/Z)", ylab="Intensity", 
        type = ifelse(spMsLevel(index)==1, "l", "h"), 
        xlim=limits$x, ylim=limits$y) 
-  text(x=mx[, 1], y=mx[, 2]/pksmax, labels=round(mx[, 1], digits=3), 
-       col="grey50", adj=c(0, 0))
+#   text(x=mx[, 1], y=mx[, 2]/pksmax, labels=round(mx[, 1], digits=3), 
+#        col="grey50", adj=c(0, 0))
   
 }
