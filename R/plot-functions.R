@@ -135,12 +135,14 @@ plotChromatogram <- function() {
   
   plot(dt, type = "l", ylim=c(0, 1.075), xlab="Retention time", ylab="Total ion count")
 #   abline(v=spRtime(index), col="red", lty=3)
-  lines(x=rep(spRtime(index), 2), y=c(0, 1), col="red", lty=3)
+  # abline went too high. 
+  lines(x=rep(spRtime(currSequence[counter]), 2), y=c(0, 1), col="red", lty=3)
   
   par(cex=.75, adj=0)
   text(x=min(dt[, 1]), y=1.075, 
        labels=paste("Max total ions ", dtmax))
   
+  par(parSave)
   time <- proc.time() - time
   
   cat("\nxic:", dim(dt)[1], "data points plotted in", 
@@ -149,7 +151,7 @@ plotChromatogram <- function() {
 
 plotSpectrumGraph <- function(zoom=NULL) {
   
-  pks <- peaks(index)
+  pks <- peaks(currSequence[counter])
   pksmax <- max(pks[, 2])
   
   mx <- pks[order(pks[, 2], decreasing=TRUE), ][1:5, ]
@@ -175,6 +177,7 @@ plotSpectrumGraph <- function(zoom=NULL) {
           col="grey25", lty=3)
   }
   
+  par(parSave)
   time <- proc.time() - time
   
   cat("\nspectrum:", dim(pks)[1], "data points plotted in", time[3]*1000, "miliseconds")
@@ -189,9 +192,14 @@ plotSpectrumZoom <- function(limits=NULL) {
 #   mx <- pks[order(pks[, 2], decreasing=TRUE), ][1:5, ]
   pks[, 2] <- pks[, 2]/pksmax
   
-  par(mar=rep(.1, 4), mgp=c(3,1,0), tck=-.01, bty="n", lab=c(5, 3, 7), 
-      adj=.5, las=1, cex=0.5)
-  plot(pks, xlab="Mass to charge ratio (M/Z)", ylab="Intensity", 
+#   par(mar=rep(.1, 4), mgp=c(3,1,0), tck=-.01, bty="n", lab=c(5, 3, 7), 
+#       adj=.5, las=1, cex=0.5)
+#   par(parSave)
+#   print(par()$mar)
+  par(mar=c(3,4,0,1), mgp=c(2,0.45,0), tck=-.01, bty="n", lab=c(5, 3, 7), 
+      adj=.5, las=1, cex=0.75)
+  par(mar=rep(1, 4))
+  plot(pks, xlab="Mass to charge ratio (M/Z)", ylab="Intensity", #zero.line=TRUE, 
        type = ifelse(spMsLevel(index)==1, "l", "h"), 
        xlim=limits$x, ylim=limits$y) 
 #   text(x=mx[, 1], y=mx[, 2]/pksmax, labels=round(mx[, 1], digits=3), 
