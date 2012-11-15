@@ -5,6 +5,7 @@ wrapper <- function(filename=NULL, device="png") {
   parSave <- par(no.readonly=TRUE)
   parSave$new <- NULL
   
+  
 #   print(parSave$mar)
   
   initialiseEnvironment(env)
@@ -176,6 +177,7 @@ drawMain <- function(env) {
   env$specInfo <- list()
   env$specPrecInfo <- list() # to distinguish precursor-related fields
   env$filterInfo <- list()
+  env$filterInfoMS <- list()
   
   # Left pane content
   
@@ -230,30 +232,30 @@ drawMain <- function(env) {
   env$le[i, 2, anchor=c(-1,-1)] <- (env$deemp$t5 <- glabel("from", container=env$le))
   env$le[i, 3, anchor=c(-1,-1)] <- (env$deemp$t6 <- glabel("to", container=env$le))
   
-  env$le[i + 1, 1] <- (env$filterInfo$rtactive <- gcheckbox("Retention time", container=env$le))
-  env$le[i + 1, 2] <- (env$filterInfo$rtfrom <- gedit("", container=env$le, width=5))
-  env$le[i + 1, 3] <- (env$filterInfo$rtto <- gedit("", container=env$le, width=5))
-  env$le[i + 2, 1] <- (env$filterInfo$indexactive <- gcheckbox("Index", container=env$le))
-  env$le[i + 2, 2] <- (env$filterInfo$indexfrom <- gedit("", container=env$le, width=5))
-  env$le[i + 2, 3] <- (env$filterInfo$indexto <- gedit("", container=env$le, width=5))
-  env$le[i + 3, 1] <- (env$filterInfo$pmzactive <- gcheckbox("Precursor M/Z", container=env$le))
-  env$le[i + 3, 2] <- (env$filterInfo$pmzfrom <- gedit("", container=env$le, width=5))
-  env$le[i + 3, 3] <- (env$filterInfo$pmzto <- gedit("", container=env$le, width=5))
-  env$le[i + 4, 1] <- (env$filterInfo$spiactive <- gcheckbox("Precursor intensity", container=env$le))
-  env$le[i + 4, 2] <- (env$filterInfo$spifrom <- gedit("", container=env$le, width=5))
-  env$le[i + 4, 3] <- (env$filterInfo$spito <- gedit("", container=env$le, width=5))
-  env$le[i + 5, 1] <- (env$filterInfo$pcactive <- gcheckbox("Precursor charge", container=env$le))
-  env$le[i + 5, 2] <- (env$filterInfo$pcfrom <- gedit("", container=env$le, width=5))
-  env$le[i + 5, 3] <- (env$filterInfo$pcto <- gedit("", container=env$le, width=5))
-  env$le[i + 6, 1] <- (env$filterInfo$massactive <- gcheckbox("Precursor mass", container=env$le))
-  env$le[i + 6, 2] <- (env$filterInfo$massfrom <- gedit("", container=env$le, width=5))
-  env$le[i + 6, 3] <- (env$filterInfo$massto <- gedit("", container=env$le, width=5))
+  env$le[i + 1, 1] <- (env$filterInfo$rt$active <- gcheckbox("Retention time", container=env$le))
+  env$le[i + 1, 2] <- (env$filterInfo$rt$from <- gedit("", container=env$le, width=5))
+  env$le[i + 1, 3] <- (env$filterInfo$rt$to <- gedit("", container=env$le, width=5))
+  env$le[i + 2, 1] <- (env$filterInfo$index$active <- gcheckbox("Index", container=env$le))
+  env$le[i + 2, 2] <- (env$filterInfo$index$from <- gedit("", container=env$le, width=5))
+  env$le[i + 2, 3] <- (env$filterInfo$index$to <- gedit("", container=env$le, width=5))
+  env$le[i + 3, 1] <- (env$filterInfo$pmz$active <- gcheckbox("Precursor M/Z", container=env$le))
+  env$le[i + 3, 2] <- (env$filterInfo$pmz$from <- gedit("", container=env$le, width=5))
+  env$le[i + 3, 3] <- (env$filterInfo$pmz$to <- gedit("", container=env$le, width=5))
+  env$le[i + 4, 1] <- (env$filterInfo$spi$active <- gcheckbox("Precursor intensity", container=env$le))
+  env$le[i + 4, 2] <- (env$filterInfo$spi$from <- gedit("", container=env$le, width=5))
+  env$le[i + 4, 3] <- (env$filterInfo$spi$to <- gedit("", container=env$le, width=5))
+  env$le[i + 5, 1] <- (env$filterInfo$pc$active <- gcheckbox("Precursor charge", container=env$le))
+  env$le[i + 5, 2] <- (env$filterInfo$pc$from <- gedit("", container=env$le, width=5))
+  env$le[i + 5, 3] <- (env$filterInfo$pc$to <- gedit("", container=env$le, width=5))
+  env$le[i + 6, 1] <- (env$filterInfo$mass$active <- gcheckbox("Precursor mass", container=env$le))
+  env$le[i + 6, 2] <- (env$filterInfo$mass$from <- gedit("", container=env$le, width=5))
+  env$le[i + 6, 3] <- (env$filterInfo$mass$to <- gedit("", container=env$le, width=5))
     
   env$le[i + 7, 1:5] <- (env$separator$t3 <- glabel("", container=env$le))
   
   env$le[i + 8, 1, anchor=c(-1,0)] <- (env$regular$t12 <- glabel("Display MS levels", container=env$le))
-  env$le[i + 8, 2] <- (env$filterInfo$ms1 <- gcheckbox("MS1", checked=TRUE, container=env$le))
-  env$le[i + 8, 3] <- (env$filterInfo$ms2 <- gcheckbox("MS2", checked=TRUE, container=env$le))
+  env$le[i + 8, 2] <- (env$filterInfoMS$ms1 <- gcheckbox("MS1", checked=TRUE, container=env$le))
+  env$le[i + 8, 3] <- (env$filterInfoMS$ms2 <- gcheckbox("MS2", checked=TRUE, container=env$le))
   
   # Buttons
   
@@ -286,7 +288,7 @@ drawMain <- function(env) {
   lapply(env$deemp, function(x) font(x) <- env$textDeemp)
   lapply(env$expInfo, function(x) font(x) <- env$textReg)
   lapply(env$specInfo, function(x) font(x) <- env$textReg)
-  lapply(env$filterInfo, function(x) font(x) <- env$textReg)
+#   lapply(env$filterInfo, function(x) font(x) <- env$textReg)
   lapply(env$separator, function(x) font(x) <- list(size=4))
     
   drawZoom <- function(env) {
@@ -326,12 +328,10 @@ drawMain <- function(env) {
       visible(env$plotZoom) <- TRUE 
       plotSpectrumZoom(list(x=fixX(h$x, spmin, spmax), 
                             y=fixY(h$y, 0, 1)))
-    }
-    
-    
+    }   
     
     handlerClickXIC = function(h,...) {
-      xicrange <- range(xic(n=c(1, 2)[c(svalue(filterInfo$ms1), svalue(filterInfo$ms2))], 
+      xicrange <- range(xic(n=c(1, 2)[c(svalue(filterInfoMS$ms1), svalue(filterInfoMS$ms2))], 
                             FALSE)[, 1])
       cat("\nXIC clicked on:", c(h$x, h$y), "  fixed x:", fixX(h$x, 
                                                              xicrange[1], 
@@ -352,6 +352,9 @@ drawMain <- function(env) {
     env$clickHandlerIDs[[2]] <- addHandlerChanged(env$plotTop, handler=handlerClickSpectrum)
   }
 
-  env$filterSpectraHandlerIDs <- lapply(env$filterInfo, addHandlerChanged, handler=filterSpectra)
-  
+  env$filterSpectraHandlerIDs <- lapply(env$filterInfo, 
+                                        function(i) lapply(i, addHandlerChanged, 
+                                                           handler=filterSpectra))
+  env$filterSpectraMSHandlerIDs <- lapply(env$filterInfoMS, addHandlerChanged, 
+                                                           handler=filterSpectra)
 }

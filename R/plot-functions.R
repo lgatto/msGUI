@@ -122,7 +122,7 @@ plotSpectrum <- function(zoom=NULL) {
 
 plotChromatogram <- function() {
   
-  dt <- xic(n=c(1, 2)[c(svalue(filterInfo$ms1), svalue(filterInfo$ms2))], 
+  dt <- xic(n=c(1, 2)[c(svalue(filterInfoMS$ms1), svalue(filterInfoMS$ms2))], 
             FALSE)
   dtmax <- max(dt[, 2])
   
