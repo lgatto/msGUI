@@ -80,7 +80,7 @@ filterSpectra <- function(h, ...) {
   if(!svalue(filterInfoMS$ms2) & !filterValuesMS$ms1) svalue(filterInfoMS$ms1) <- TRUE 
   
   # Disable Precursor MZ filter if only MS2 selected  
-  lapply(filterInfo$rt, function(i) enabled(i) <- svalue(filterInfoMS$ms2))2)
+  lapply(filterInfo$rt, function(i) enabled(i) <- svalue(filterInfoMS$ms2))
   
   # Filter!
   keep <- mapply(function(data, obj) {

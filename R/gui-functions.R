@@ -29,6 +29,7 @@ wrapper <- function(filename=NULL, device="png") {
   environment(plotChromatogram) <- env 
   environment(buttonSwitch) <- env
   environment(plotSpectrumZoom) <- env
+  environment(blockFilters) <- env
   
   drawMain(env)
   initialiseGUI()
