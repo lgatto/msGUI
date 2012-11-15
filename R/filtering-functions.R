@@ -1,20 +1,23 @@
-saveFilterValues <- function(env) {
-  filterValues <- list(rtfrom=svalue(filterInfo$rtfrom), 
-                       rtto=svalue(filterInfo$rtto), 
-                       pmzfrom=svalue(filterInfo$pmzfrom), 
-                       pmzto=svalue(filterInfo$pmzto), 
-                       spifrom=svalue(filterInfo$spifrom), 
-                       spito=svalue(filterInfo$spito), 
-                       indexfrom=svalue(filterInfo$indexfrom), 
-                       indexto=svalue(filterInfo$indexto),
-                       pcfrom=svalue(filterInfo$pcfrom), 
-                       pcto=svalue(filterInfo$pcto),
-                       massfrom=svalue(filterInfo$massfrom), 
-                       massto=svalue(filterInfo$massto),
-                       ms1=svalue(filterInfo$ms1), 
-                       ms2=svalue(filterInfo$ms2))
-  lapply(filterValues, as.numeric)
-}
+# saveFilterValues <- function(env) {
+#   filterValues <- list(rtfrom=svalue(filterInfo$rtfrom), 
+#                        rtto=svalue(filterInfo$rtto), 
+#                        pmzfrom=svalue(filterInfo$pmzfrom), 
+#                        pmzto=svalue(filterInfo$pmzto), 
+#                        spifrom=svalue(filterInfo$spifrom), 
+#                        spito=svalue(filterInfo$spito), 
+#                        indexfrom=svalue(filterInfo$indexfrom), 
+#                        indexto=svalue(filterInfo$indexto),
+#                        pcfrom=svalue(filterInfo$pcfrom), 
+#                        pcto=svalue(filterInfo$pcto),
+#                        massfrom=svalue(filterInfo$massfrom), 
+#                        massto=svalue(filterInfo$massto),
+#                        ms1=svalue(filterInfo$ms1), 
+#                        ms2=svalue(filterInfo$ms2))
+#   env$filterValues <- lapply(filterValues, as.numeric)
+# }
+
+saveFilterValues <- function(env) 
+  env$filterValues <- lapply(filterInfo, function(i) as.numeric(svalue(i)))
 
 filterReset <- function(env) {
   mapply(blockHandler, filterInfo, filterSpectraHandlerIDs)
@@ -38,7 +41,7 @@ filterReset <- function(env) {
   svalue(filterInfo$massto) <- max(spPrecMz()*spPrecCharge())
   svalue(filterInfo$ms1) <- TRUE
   svalue(filterInfo$ms2) <- TRUE
-  filterValues <<- saveFilterValues(env)
+  env$filterValues <- saveFilterValues(env)
   mapply(unblockHandler, filterInfo, filterSpectraHandlerIDs)
 }
 
@@ -118,20 +121,20 @@ filterSpectra <- function(h, ...) {
   if(!svalue(filterInfo$ms1)) keep <- keep & spMsLevel() != 1
   if(!svalue(filterInfo$ms2)) keep <- keep & spMsLevel() != 2
   
-  filterValues <<- saveFilterValues(env)
+  env$filterValues <- saveFilterValues(env)
   
   mapply(unblockHandler, filterInfo, filterSpectraHandlerIDs)
   
   if(any(keep)) {
-    newSequence <<- spIndex()[keep]
+    newSequence <- spIndex()[keep]
     # Compare sequences and update if necessary
     if(!identical(currSequence, newSequence)) {
       
       prevIndex <- currSequence[counter]
-      currSequence <<- newSequence
+      env$currSequence <- newSequence
       
       # Find the nearest spectrum to the one before
-      counter <<- which.min(abs(newSequence - prevIndex))
+      env$counter <- which.min(abs(newSequence - prevIndex))
       
       # also update graphs if index has changed
       if(prevIndex!=newSequence[counter]) updateSpectrum()
