@@ -15,7 +15,7 @@ blockFilters <- function(block=TRUE) {
   
 filterReset <- function(env) {
   
-  filterData <- list(spRtime(), spPrecMz(), spPrecInt(), spIndex(), spPrecCharge(), spPrecMz()*spPrecCharge())
+  filterData <- list(spRtime(), spIndex(), spPrecMz(), spPrecInt(), spPrecCharge(), spPrecMz()*spPrecCharge())
     
   blockFilters()
   
@@ -66,7 +66,7 @@ validityCheck <- function(object, data, pastValues) {
 
 filterSpectra <- function(h, ...) {
   
-  filterData <- list(spRtime(), spPrecMz(), spPrecInt(), spIndex(), spPrecCharge(), spPrecMz()*spPrecCharge())
+  filterData <- list(spRtime(), spIndex(), spPrecMz(), spPrecInt(), spPrecCharge(), spPrecMz()*spPrecCharge())
   
   blockFilters()
   
