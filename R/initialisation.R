@@ -13,10 +13,8 @@ initialiseEnvironment <- function(env) {
                              size=8, color="grey50"), pos=env)
   assign("textDeemp", list(weight="normal", family="sans", 
                            size=8, color="grey50"), pos=env)
-#   browser()
   functions <- list(drawMain)
   assign(as.character(substitute(deparse(drawMain)))[2], drawMain, pos=env)
-#   for(x in )
 }
 
 initialiseGUI <- function() {  
@@ -25,5 +23,3 @@ initialiseGUI <- function() {
   enabled(buttonRight) <- FALSE
   filterSwitch(FALSE)
 }
-
-# if(updateOnLoad) updateExperiment()
