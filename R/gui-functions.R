@@ -2,13 +2,12 @@ wrapper <- function(filename=NULL, device="png") {
   
   env <- environment()
   
-  parSave <- par(no.readonly=TRUE)
-  parSave$new <- NULL
-  
-  
-#   print(parSave$mar)
-  
   initialiseEnvironment(env)
+  zoomWindowClosed <- TRUE
+  settings <- list()
+  settings$allowMultipleWindows <- FALSE
+  
+  # Later allow user to save settings via `fix()`
   
   environment(openFileHandler) <- env  
   environment(drawMain) <- env  
@@ -269,8 +268,8 @@ drawMain <- function(env) {
   
   if(any(c("cairo", "png")==device)) {
     
-    env$plotTop <- ggraphics(container=env$groupPlots, width=500, height=250) #, ps=12, dpi=72)
-    env$plotBottom <- ggraphics(container=env$groupPlots, width=500, height=250) #, ps=12, dpi=72)
+    env$plotTop <- ggraphics(container=env$groupPlots, width=500, height=250, ps=12, dpi=75)
+    env$plotBottom <- ggraphics(container=env$groupPlots, width=500, height=250, ps=12, dpi=75)
     
   } else if(device=="gimage"){
   
@@ -294,20 +293,26 @@ drawMain <- function(env) {
     
   drawZoom <- function(env) {
     env$zoomWindow <- gwindow("Spectrum fragment", visible=TRUE, 
-                              handler=function(h, ...) plotSpectrum())
+                              handler=function(h, ...) {
+                                env$zoomWindowClosed <- TRUE
+                                plotSpectrum()
+                                })
+    env$zoomWindowClosed <- FALSE
     env$groupZoomMain <- ggroup(container=env$zoomWindow, horizontal=FALSE, expand=TRUE)
     env$plotZoom <- ggraphics(width=600, height=600, container=env$groupZoomMain, dpi=75, ps=12)
   }  
   
   fixX <- function(x, lower, upper) {
     if(device=="png") {
-      ((x + .04) / 1.08 - 40/500) * 500 / (500 - 40 - 20) * (upper - lower) + lower 
+      x <- ((x + .04) / 1.08 - 40/500) * 500 / (500 - 40 - 20) * (upper - lower) + lower
+      sapply(sapply(x, max, lower), min, upper) # so that coordinates don't exceed limits
     } else x
   }
   
   fixY <- function(x, lower, upper) {
     if(device=="png") {
-      ((x + .04) / 1.08 - 40/250) * 250 / (250 - 40 - 22) * (upper - lower) + lower
+      x <- ((x + .04) / 1.08 - 40/250) * 250 / (250 - 40 - 22) * (upper - lower) + lower
+      sapply(sapply(x, max, lower), min, upper)
     } else x
   }
   
@@ -325,7 +330,7 @@ drawMain <- function(env) {
       
       plotSpectrum(zoom=list(x=fixX(h$x, spmin, spmax), 
                              y=fixY(h$y, 0, 1)))
-      drawZoom(env)
+      if(zoomWindowClosed | settings$allowMultipleWindows) drawZoom(env)
       visible(env$plotZoom) <- TRUE 
       plotSpectrumZoom(list(x=fixX(h$x, spmin, spmax), 
                             y=fixY(h$y, 0, 1)))

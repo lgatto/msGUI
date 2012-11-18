@@ -159,7 +159,7 @@ plotSpectrumGraph <- function(zoom=NULL) {
   
   time <- proc.time()
   
-  par(mar=c(3,3,0,1), mgp=c(2,0.45,0), tck=-.01, bty="n", lab=c(5, 3, 7), 
+  env$parSave <- par(mar=c(3,3,0,1), mgp=c(2,0.45,0), tck=-.01, bty="n", lab=c(5, 3, 7), 
       adj=.5, las=1, cex=0.75)
   plot(pks, xlab="Mass to charge ratio (M/Z)", ylab="Intensity", 
        type = ifelse(spMsLevel(index)==1, "l", "h"), 
@@ -198,7 +198,6 @@ plotSpectrumZoom <- function(limits=NULL) {
 #   print(par()$mar)
   par(mar=c(3,4,0,1), mgp=c(2,0.45,0), tck=-.01, bty="n", lab=c(5, 3, 7), 
       adj=.5, las=1, cex=0.75)
-  par(mar=rep(1, 4))
   plot(pks, xlab="Mass to charge ratio (M/Z)", ylab="Intensity", #zero.line=TRUE, 
        type = ifelse(spMsLevel(index)==1, "l", "h"), 
        xlim=limits$x, ylim=limits$y) 
