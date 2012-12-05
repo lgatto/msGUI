@@ -29,6 +29,10 @@ wrapper <- function(filename=NULL, device="png") {
   environment(buttonSwitch) <- env
   environment(plotSpectrumZoom) <- env
   environment(blockFilters) <- env
+  environment(getObjects) <- env
+  environment(openObject) <- env
+  environment(drawVarBrowser) <- env
+  environment(resetCache) <- env
   
   drawMain(env)
   initialiseGUI()
@@ -58,6 +62,7 @@ counterReset <- function(env) {
 updateExperiment <- function(env) {  
   
   updateExperimentInfo()
+  resetCache()
   counterReset(env)    
   filterReset(env)    
   filterSwitch(TRUE)
@@ -151,7 +156,12 @@ drawMain <- function(env) {
   }
   
   # Window and structure
-  env$msGUIWindow <- gwindow("msGUI", visible=FALSE)
+  env$msGUIWindow <- gwindow("msGUI", visible=FALSE, handler=function(h, ...) {
+#     browser()
+    file.remove(unlist(cache$spectra[!sapply(cache$spectra, is.null)]))
+    file.remove(unlist(cache$xic[!sapply(cache$xic, is.null)]))
+    if(!zoomWindowClosed) dispose(zoomWindow)
+  })
   env$groupMain <- ggroup(container=env$msGUIWindow, horizontal=FALSE, expand=TRUE)
   env$groupUpper <- ggroup(container=env$groupMain)
   env$groupMiddle <- ggroup(container=env$groupMain, expand=TRUE)
@@ -162,7 +172,8 @@ drawMain <- function(env) {
   ## Top group
   env$buttonOpenFile <- gbutton("Open file", container=env$groupUpper, 
                                 handler=openFileHandler)
-  env$buttonOpenObject <- gbutton("Open R object", container=env$groupUpper)
+  env$buttonOpenObject <- gbutton("Open R object", container=env$groupUpper, 
+                                  handler=drawVarBrowser)
   addSpring(env$groupUpper)
   env$buttonSettings <- gbutton("Settings", container=env$groupUpper)
   env$buttonHelp <- gbutton("Help", container=env$groupUpper)
@@ -299,7 +310,10 @@ drawMain <- function(env) {
                                 })
     env$zoomWindowClosed <- FALSE
     env$groupZoomMain <- ggroup(container=env$zoomWindow, horizontal=FALSE, expand=TRUE)
-    env$plotZoom <- ggraphics(width=600, height=600, container=env$groupZoomMain, dpi=75, ps=12)
+    env$plotZoom <- ggraphics(width=400, height=400, container=env$groupZoomMain, dpi=96, ps=12)
+    env$clickHandlerIDs[[3]] <- addHandlerChanged(env$plotZoom, handler=handlerClickZoom)
+    visible(plotZoom) <- TRUE
+    plotMsg("Refreshing...")
   }  
   
   fixX <- function(x, lower, upper) {
@@ -318,24 +332,35 @@ drawMain <- function(env) {
   
   if(device!="tkrplot") {    
     handlerClickGeneric = function(h,...) {
-      cat("\nclicked on:", c(h$x, h$y))
+#       cat("\nclicked on:", c(h$x, h$y))
     } 
     
     handlerClickSpectrum = function(h,...) {
       spmin <- min(spLowMZ()[spMsLevel()==spMsLevel(index)])
       spmax <- max(spHighMZ()[spMsLevel()==spMsLevel(index)])
-      cat("\nx:", h$x, "y: ", h$y, 
-          "  fixed: x:", fixX(h$x, spmin, spmax), 
-          "y:", fixY(h$y, 0, 1))
+#       cat("\nx:", h$x, "y: ", h$y, 
+#           "  fixed: x:", fixX(h$x, spmin, spmax), 
+#           "y:", fixY(h$y, 0, 1)) 
       
       plotSpectrum(zoom=list(x=fixX(h$x, spmin, spmax), 
                              y=fixY(h$y, 0, 1)))
       if(zoomWindowClosed | settings$allowMultipleWindows) drawZoom(env)
-      visible(env$plotZoom) <- TRUE 
+      visible(env$plotZoom) <- TRUE          
       plotSpectrumZoom(list(x=fixX(h$x, spmin, spmax), 
                             y=fixY(h$y, 0, 1)))
     }   
-    
+    handlerClickZoom = function(h,...) {
+#       spmin <- min(spLowMZ()[spMsLevel()==spMsLevel(index)])
+#       spmax <- max(spHighMZ()[spMsLevel()==spMsLevel(index)])
+      #       cat("\nx:", h$x, "y: ", h$y, 
+      #           "  fixed: x:", fixX(h$x, spmin, spmax), 
+      #           "y:", fixY(h$y, 0, 1)) 
+      
+      plotSpectrum(zoom=h)
+      if(zoomWindowClosed | settings$allowMultipleWindows) drawZoom(env)
+      visible(env$plotZoom) <- TRUE          
+      plotSpectrumZoom(h)
+    } 
     handlerClickXIC = function(h,...) {
       xicrange <- range(xic(n=c(1, 2)[c(svalue(filterInfoMS$ms1), svalue(filterInfoMS$ms2))], 
                             FALSE)[, 1])
@@ -361,6 +386,86 @@ drawMain <- function(env) {
   env$filterSpectraHandlerIDs <- lapply(env$filterInfo, 
                                         function(i) lapply(i, addHandlerChanged, 
                                                            handler=filterSpectra))
+#   env$filterSpectraHandlerIDs <- c(filterSpectraHandlerIDs, 
+#                                    lapply(env$filterInfo, 
+#                                         function(i) lapply(i, addHandlerBlur, 
+#                                                            handler=filterSpectra)))
+#   # error:
+#   (rsession.exe:7992): Gtk-WARNING **: GtkEntry - did not receive focus-out-event. If you
+#   connect a handler to this signal, it must return
+#   FALSE so the entry gets the event as well
+    
   env$filterSpectraMSHandlerIDs <- lapply(env$filterInfoMS, addHandlerChanged, 
                                                            handler=filterSpectra)
+}
+
+getObjects <- function(classes="All classes") {
+  objects <- ls(envir=globalenv())
+  x <- cbind(Object=objects, 
+             Class=sapply(objects, function(x) class(get(x))), 
+             Comment=sapply(objects, function(x) ifelse(class(get(x))=="MSnExp", "Some attribute", "")))
+  rows <- x[, 2]!="function"
+  if(classes!="All classes") rows <- x[, 2]==classes
+  if(sum(rows)==0) return(data.frame(Object="No objects found", 
+                                     Class="", 
+                                     Comment="", 
+                                     stringsAsFactors=FALSE))
+  x[rows, , drop=FALSE]
+}
+
+openObject <- function(object) {
+  cat("\nYay, will open", object)
+  makeMSnExpAccessors(get(object), env)
+  updateExperiment(env)
+}
+
+drawVarBrowser <- function(h, ...) {
+  windowVB <- gwindow(title="Browse R objects", visible=FALSE, 
+                      width=400, height=300, parent=msGUIWindow)
+  panelVB <- ggroup(container=windowVB, horizontal=FALSE, expand=TRUE)
+  panelVBtop <- ggroup(container=panelVB)
+  panelVBmiddle <- ggroup(container=panelVB, expand=TRUE)
+  panelVBbottom <- ggroup(container=panelVB) #, horizontal=TRUE
+  text <- glabel("Filter objects by class: ", container=panelVBtop)
+  filterVB <- gcombobox(container=panelVBtop, 
+                        handler=function(h, ...) 
+                          tableVB[] <- getObjects(svalue(filterVB)), 
+                        items=c("MSnExp", "All classes"))
+#   
+#   text <- glabel("Filter objects by class: ", container=panelVBtop)
+#   filterVB <- gcombobox(container=panelVBtop, 
+#                         handler=function(h, ...) 
+#                           tableVB[] <- getObjects(svalue(filterVB)), 
+#                         items=c("MSnExp", "All classes"))
+#   layoutVB <- glayout(spacing=2, container=panelVBtop)
+#   layoutVB[1, 1] <- glabel("Filter objects by class: ", container=layoutVB)
+#   layoutVB[1, 2] <- (filterVB <- gcombobox(container=layoutVB, 
+#                         handler=function(h, ...) 
+#                           tableVB[] <- getObjects(svalue(filterVB)), 
+#                         items=c("MSnExp", "All classes")))
+#   
+#   layoutVB[2, 1] <- glabel("Filter objects by class: ", container=layoutVB)
+#   layoutVB[2, 2] <- (filter2VB <- gcombobox(container=layoutVB, 
+#                         handler=function(h, ...) 
+#                           tableVB[] <- getObjects(svalue(filter2VB)), 
+#                         items=c("MSnExp", "All classes")))
+  
+  
+  tableVB <- gtable(container=panelVBmiddle, items=getObjects(svalue(filterVB)), expand=TRUE)
+  
+  openObjectHandler <- function(h, ...) {
+    if(length(svalue(tableVB))==0) 
+      gmessage(title=" ", message="Please select object!")
+    else if(svalue(tableVB)=="No objects found") return(FALSE)
+    else openObject(svalue(tableVB))
+  }
+  
+  addHandlerDoubleclick(tableVB, handler=openObjectHandler)
+  
+  buttonRefresh <- gbutton(text="Refresh", container=panelVBbottom, 
+                           handler=function(h, ...) tableVB[] <- getObjects(svalue(filterVB)))
+  addSpring(panelVBbottom)
+  buttonOpen <- gbutton(text="Open", container=panelVBbottom, 
+                        handler=openObjectHandler)
+  visible(windowVB) <- TRUE
 }

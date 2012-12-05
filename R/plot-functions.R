@@ -1,23 +1,41 @@
+plotMsg <- function(message) {
+  par(mar=rep(0, 4))
+  plot(x=c(0, 1), y=c(0, 1), col="white", , bg="grey10", axes=FALSE)
+  text(x=.5, y=.5, labels=message)
+}
+
 plotXIC <- function() {
   
   if(device=="png") {
-    
-    filename <- tempfile(fileext=".png")
-    png(filename, width=500, height=250)
-    
-    plotChromatogram()
-    
-    dev.off()
+    if(is.null(cache$xic[[currSequence[counter]]])) {
+      
+      filename <- tempfile(fileext=".png")    
+      png(filename, width=500, height=250)    
+      plotChromatogram()    
+      dev.off()    
+      env$cache$xic[[currSequence[counter]]] <- filename
+      
+    } else filename <- cache$xic[[currSequence[counter]]]
     
     visible(plotBottom) <- TRUE 
-#     grid::grid.raster(readPNG(filename))
-    par(mar=rep(0, 4))
-    plot(x=c(0, 1), y=c(0, 1), col="white", , bg="grey10", axes=FALSE)
-    text(x=.5, y=.5, labels="Refreshing...")
+    plotMsg("Refreshing...")  
+    lim <- par()$usr
+    rasterImage(readPNG(filename), lim[1], lim[3], lim[2], lim[4], interpolate=FALSE)
     
-    lim <- par()
-    rasterImage(readPNG(filename), lim$usr[1], lim$usr[3], lim$usr[2], lim$usr[4], interpolate=FALSE)
-        
+#     filename <- tempfile(fileext=".png")
+#     png(filename, width=500, height=250)
+#     
+#     plotChromatogram()
+#     
+#     dev.off()
+#     
+#     visible(plotBottom) <- TRUE 
+#     
+#     plotMsg("Refreshing...")
+#     
+#     lim <- par()
+#     rasterImage(readPNG(filename), lim$usr[1], lim$usr[3], lim$usr[2], lim$usr[4], interpolate=FALSE)
+#         
   } else if(device=="cairo") {
     
     visible(plotBottom) <- TRUE 
@@ -57,14 +75,25 @@ plotXIC <- function() {
 plotSpectrum <- function(zoom=NULL) {
   
   if(device=="png") {
-    
-    filename <- tempfile(fileext=".png")
-    png(filename, width=500, height=250)
-    
-    plotSpectrumGraph(zoom=zoom)
-    
-    dev.off()
-    
+    if(is.null(cache$spectra[[currSequence[counter]]]) | !is.null(zoom)) {
+      
+      if(is.null(zoom)) cat("\ncaching", currSequence[counter])
+      
+      filename <- tempfile(fileext=".png")
+      
+      png(filename, width=500, height=250)
+      
+      plotSpectrumGraph(zoom=zoom)
+      
+      dev.off()
+      
+      if(is.null(zoom)) env$cache$spectra[[currSequence[counter]]] <- filename
+      
+    } else {
+      cat("\nloading", currSequence[counter], "from cache")
+      filename <- cache$spectra[[currSequence[counter]]]
+    }
+        
     visible(plotTop) <- TRUE 
 #     grid::grid.raster(readPNG(filename), width=1, height=1) # Not specifying 
     # whidth and height results in handlerChanged retrieving NaN and Inf 
@@ -76,14 +105,11 @@ plotSpectrum <- function(zoom=NULL) {
     # Another method without package:grob. Also works but graphs 
     # flicker when reloading which is not super amazing.
     
-    par(mar=rep(0, 4))
-    plot(x=c(0, 1), y=c(0, 1), col="white", , bg="grey10", axes=FALSE)
-    text(x=.5, y=.5, labels="Refreshing...")
-
-    lim <- par()
-    rasterImage(readPNG(filename), lim$usr[1], lim$usr[3], lim$usr[2], lim$usr[4], interpolate=FALSE)
+    plotMsg("Refreshing...")
     
-    
+    lim <- par()$usr
+    rasterImage(readPNG(filename), lim[1], lim[3], lim[2], lim[4], interpolate=FALSE)
+        
   } else if(device=="cairo") {
     
     visible(plotTop) <- TRUE 
@@ -132,6 +158,7 @@ plotChromatogram <- function() {
       adj=.5, las=1, cex=0.75)
   
   time <- proc.time()
+  .GlobalEnv$.msgui <- FALSE
   
   plot(dt, type = "l", ylim=c(0, 1.075), xlab="Retention time", ylab="Total ion count")
 #   abline(v=spRtime(index), col="red", lty=3)
@@ -144,6 +171,8 @@ plotChromatogram <- function() {
   
   par(parSave)
   time <- proc.time() - time
+  
+  .GlobalEnv$.msgui <- TRUE
   
   cat("\nxic:", dim(dt)[1], "data points plotted in", 
       time[3]*1000, "miliseconds")
@@ -158,6 +187,9 @@ plotSpectrumGraph <- function(zoom=NULL) {
   pks[, 2] <- pks[, 2]/pksmax
   
   time <- proc.time()
+  .GlobalEnv$.msgui <- FALSE
+  
+#   browser()
   
   env$parSave <- par(mar=c(3,3,0,1), mgp=c(2,0.45,0), tck=-.01, bty="n", lab=c(5, 3, 7), 
       adj=.5, las=1, cex=0.75)
@@ -180,28 +212,37 @@ plotSpectrumGraph <- function(zoom=NULL) {
   par(parSave)
   time <- proc.time() - time
   
+  .GlobalEnv$.msgui <- TRUE
+  
   cat("\nspectrum:", dim(pks)[1], "data points plotted in", time[3]*1000, "miliseconds")
   
 }
 
 plotSpectrumZoom <- function(limits=NULL) {
   cat("\nlimits:", limits$x, limits$y)
+  
+  .GlobalEnv$.msgui <- FALSE
   pks <- peaks(index)
   pksmax <- max(pks[, 2])
   
-#   mx <- pks[order(pks[, 2], decreasing=TRUE), ][1:5, ]
+# attempt to make nice labels in the visible area of zoom chart
+#   mx <- pks[pks[, 1] > limits$x[1] | pks[, 1] < limits$x[2] | pks[, 2] > limits$y[1] | pks[, 2] < limits$y[2], ]
+#   mx <- mx[order(mx[, 2], decreasing=TRUE), ][1:5, ]
   pks[, 2] <- pks[, 2]/pksmax
   
 #   par(mar=rep(.1, 4), mgp=c(3,1,0), tck=-.01, bty="n", lab=c(5, 3, 7), 
 #       adj=.5, las=1, cex=0.5)
 #   par(parSave)
-#   print(par()$mar)
-  par(mar=c(3,4,0,1), mgp=c(2,0.45,0), tck=-.01, bty="n", lab=c(5, 3, 7), 
-      adj=.5, las=1, cex=0.75)
+  print(par()$mar)
+  par(mar=c(3, 3, 0, 0), mgp=c(2,0.45,0), tck=-.01, bty="n", lab=c(5, 3, 7), 
+      adj=.5, las=1, cex=0.65)
+  print(par()$mar)
   plot(pks, xlab="Mass to charge ratio (M/Z)", ylab="Intensity", #zero.line=TRUE, 
        type = ifelse(spMsLevel(index)==1, "l", "h"), 
        xlim=limits$x, ylim=limits$y) 
 #   text(x=mx[, 1], y=mx[, 2]/pksmax, labels=round(mx[, 1], digits=3), 
 #        col="grey50", adj=c(0, 0))
+  
+  .GlobalEnv$.msgui <- TRUE
   
 }

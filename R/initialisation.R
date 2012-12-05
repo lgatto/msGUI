@@ -18,6 +18,13 @@ initialiseEnvironment <- function(env) {
 }
 
 initialiseGUI <- function() {  
+#   setHook("before.plot.new", 
+#           value=function() {
+#             if(.GlobalEnv$.msgui & all(names(dev.list())=="Cairo" | grepl("png", names(dev.list())))) dev.new()
+#             
+#             }, 
+#           action="append")
+  
   visible(msGUIWindow) <- TRUE  
   enabled(buttonLeft) <- FALSE
   enabled(buttonRight) <- FALSE
