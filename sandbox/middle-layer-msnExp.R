@@ -8,7 +8,8 @@ makeDataEnvMSnExp <- function(object) {
   ##  the data header and runInfo
   e <- new.env(parent = emptyenv(), hash = TRUE)   
   assign("fh", assayData(object), env = e)
-  assign("hd", header(object), env = e)
+  hd <- header(object)
+  assign("hd", hd[order$header(object), ], env = e)
   assign("runInfo", list(scanCount=length(object), 
                          lowMZ=min(e$hd$precursor.mz), 
                          highMZ=max(e$hd$precursor.mz), 

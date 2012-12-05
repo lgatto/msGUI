@@ -10,7 +10,7 @@ plotXIC <- function() {
     if(is.null(cache$xic[[currSequence[counter]]])) {
       
       filename <- tempfile(fileext=".png")    
-      png(filename, width=500, height=250)    
+      png(filename, width=500, height=250, restoreConsole=FALSE)    
       plotChromatogram()    
       dev.off()    
       env$cache$xic[[currSequence[counter]]] <- filename
@@ -22,20 +22,6 @@ plotXIC <- function() {
     lim <- par()$usr
     rasterImage(readPNG(filename), lim[1], lim[3], lim[2], lim[4], interpolate=FALSE)
     
-#     filename <- tempfile(fileext=".png")
-#     png(filename, width=500, height=250)
-#     
-#     plotChromatogram()
-#     
-#     dev.off()
-#     
-#     visible(plotBottom) <- TRUE 
-#     
-#     plotMsg("Refreshing...")
-#     
-#     lim <- par()
-#     rasterImage(readPNG(filename), lim$usr[1], lim$usr[3], lim$usr[2], lim$usr[4], interpolate=FALSE)
-#         
   } else if(device=="cairo") {
     
     visible(plotBottom) <- TRUE 
@@ -77,11 +63,11 @@ plotSpectrum <- function(zoom=NULL) {
   if(device=="png") {
     if(is.null(cache$spectra[[currSequence[counter]]]) | !is.null(zoom)) {
       
-      if(is.null(zoom)) cat("\ncaching", currSequence[counter])
+      if(is.null(zoom) & verbose) cat("\ncaching", currSequence[counter])
       
       filename <- tempfile(fileext=".png")
       
-      png(filename, width=500, height=250)
+      png(filename, width=500, height=250, restoreConsole=FALSE)
       
       plotSpectrumGraph(zoom=zoom)
       
@@ -90,7 +76,7 @@ plotSpectrum <- function(zoom=NULL) {
       if(is.null(zoom)) env$cache$spectra[[currSequence[counter]]] <- filename
       
     } else {
-      cat("\nloading", currSequence[counter], "from cache")
+      if(verbose) cat("\nloading", currSequence[counter], "from cache")
       filename <- cache$spectra[[currSequence[counter]]]
     }
         
@@ -148,8 +134,7 @@ plotSpectrum <- function(zoom=NULL) {
 
 plotChromatogram <- function() {
   
-  dt <- xic(n=c(1, 2)[c(svalue(filterInfoMS$ms1), svalue(filterInfoMS$ms2))], 
-            FALSE)
+  dt <- xic(n=1, FALSE)
   dtmax <- max(dt[, 2])
   
   dt[, 2] <- dt[, 2]/dtmax
@@ -174,7 +159,7 @@ plotChromatogram <- function() {
   
   .GlobalEnv$.msgui <- TRUE
   
-  cat("\nxic:", dim(dt)[1], "data points plotted in", 
+  if(verbose) cat("\nxic:", dim(dt)[1], "data points plotted in", 
       time[3]*1000, "miliseconds")
 }
 
@@ -214,12 +199,12 @@ plotSpectrumGraph <- function(zoom=NULL) {
   
   .GlobalEnv$.msgui <- TRUE
   
-  cat("\nspectrum:", dim(pks)[1], "data points plotted in", time[3]*1000, "miliseconds")
+  if(verbose) cat("\nspectrum:", dim(pks)[1], "data points plotted in", time[3]*1000, "miliseconds")
   
 }
 
 plotSpectrumZoom <- function(limits=NULL) {
-  cat("\nlimits:", limits$x, limits$y)
+  if(verbose) cat("\nlimits:", limits$x, limits$y)
   
   .GlobalEnv$.msgui <- FALSE
   pks <- peaks(index)
@@ -234,7 +219,7 @@ plotSpectrumZoom <- function(limits=NULL) {
 #       adj=.5, las=1, cex=0.5)
 #   par(parSave)
   print(par()$mar)
-  par(mar=c(3, 3, 0, 0), mgp=c(2,0.45,0), tck=-.01, bty="n", lab=c(5, 3, 7), 
+  par(mar=c(2, 2, 0, 0), mgp=c(2,0.45,0), tck=-.01, bty="n", lab=c(5, 3, 7), 
       adj=.5, las=1, cex=0.65)
   print(par()$mar)
   plot(pks, xlab="Mass to charge ratio (M/Z)", ylab="Intensity", #zero.line=TRUE, 

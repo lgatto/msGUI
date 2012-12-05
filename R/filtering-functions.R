@@ -1,39 +1,47 @@
 saveFilterValues <- function() {
   env$filterValues <- lapply(filterInfo, function(x) lapply(x, function(i) svalue(i)))
+  env$filterValuesXIC <- lapply(filterInfoXIC, function(x) lapply(x, function(i) svalue(i)))
   env$filterValuesMS <- lapply(filterInfoMS, svalue)
 }
 
 blockFilters <- function(block=TRUE) {
   if(block) {
     mapply(function(obj, id) mapply(blockHandler, obj, id), filterInfo, filterSpectraHandlerIDs)
+    mapply(function(obj, id) mapply(blockHandler, obj, id), filterInfoXIC, filterXICHandlerIDs)
     mapply(blockHandler, filterInfoMS, filterSpectraMSHandlerIDs)    
   } else {    
     mapply(function(obj, id) mapply(unblockHandler, obj, id), filterInfo, filterSpectraHandlerIDs)
+    mapply(function(obj, id) mapply(unblockHandler, obj, id), filterInfoXIC, filterXICHandlerIDs)
     mapply(unblockHandler, filterInfoMS, filterSpectraMSHandlerIDs)   
   }
 }
+
+updateRanges <- function(obj, values) {
+  svalue(obj$active) <- FALSE
+  svalue(obj$from) <- min(values)
+  svalue(obj$to) <- max(values)
+}
   
-filterReset <- function(env) {
-  
-  filterData <- list(spRtime(), spIndex(), spPrecMz(), spPrecInt(), spPrecCharge(), spPrecMz()*spPrecCharge())
-    
+filterReset <- function(env) {  
   blockFilters()
   
-  mapply(function(obj, values) {
-    svalue(obj$active) <- FALSE
-    svalue(obj$from) <- min(values)
-    svalue(obj$to) <- max(values)
-  }, filterInfo, filterData)
+  # Filters for spectra
+  mapply(updateRanges, filterInfo, filterData)
   
+  # MS levels checkboxes
   lapply(filterInfoMS, function(i) svalue(i) <- TRUE)
   
-  saveFilterValues()
+  # Filter for XIC
+  mapply(updateRanges, filterInfoXIC, list(spPrecMz()))
   
+  saveFilterValues()  
   blockFilters(FALSE)
 }
 
 filterSwitch <- function(on) {
   lapply(filterInfo, function(x) lapply(x, function(i) enabled(i) <- on))
+  lapply(filterInfoXIC, function(x) lapply(x, function(i) enabled(i) <- on))
+  lapply(filterInfoMS, function(x) enabled(x) <- on)
 }
 
 btwn <- function(x, from, to) {
@@ -47,42 +55,44 @@ validityCheck <- function(object, data, pastValues) {
   from <- object$from
   to <- object$to
   
-  numFrom <- as.numeric(svalue(from))
-  numTo <- as.numeric(svalue(to))
+  numFrom <- suppressMessages(as.numeric(svalue(from)))
+  numTo <- suppressMessages(as.numeric(svalue(to)))
   
   prevFrom <- as.numeric(pastValues$from)
   prevTo <- as.numeric(pastValues$to)
-  
+    
   prevValid <- prevFrom >= min(data) & prevFrom < prevTo & prevTo > min(data) & prevTo <= max(data)
-  if(numFrom < min(data)) svalue(from) <- min(data)
-  if(numFrom > max(data)) svalue(from) <- ifelse(prevValid, prevFrom, min(data))
-  if(numTo < min(data)) svalue(to) <- ifelse(prevValid, prevTo, max(data))
-  if(numTo > max(data)) svalue(to) <- max(data)
-  if(numFrom > numTo) {
+  if(is.na(numFrom)) svalue(from) <- min(data) else {
+    if(numFrom < min(data)) svalue(from) <- min(data)
+    if(numFrom > max(data)) svalue(from) <- ifelse(prevValid, prevFrom, min(data))
+  }
+  if(is.na(numTo)) svalue(to) <- ifelse(prevValid, prevTo, max(data)) else {
+    if(numTo < min(data)) svalue(to) <- ifelse(prevValid, prevTo, max(data))
+    if(numTo > max(data)) svalue(to) <- max(data)
+  }
+  if(as.numeric(svalue(from)) > as.numeric(svalue(to))) {
     if(numFrom!=prevFrom) svalue(from) <- prevFrom
     else svalue(to) <- prevTo
   }
 }
 
 filterSpectra <- function(h, ...) {
-  
-  filterData <- list(spRtime(), spIndex(), spPrecMz(), spPrecInt(), spPrecCharge(), spPrecMz()*spPrecCharge())
-  
   blockFilters()
   
-  # Check current values, make fixes if necessary
+  # Check entered values, fix if needed
   mapply(validityCheck, filterInfo, filterData, filterValues)
-  
-  # If MS1 was deselected previously, and user deselects MS2, 
-  # select MS1 in order to have something selected
-  if(!svalue(filterInfoMS$ms1) & !filterValuesMS$ms2) svalue(filterInfoMS$ms2) <- TRUE    
-  # And vice versa
+    
+  # Make sure at least one MS level is selected
+  if(!svalue(filterInfoMS$ms1) & !filterValuesMS$ms2) svalue(filterInfoMS$ms2) <- TRUE
   if(!svalue(filterInfoMS$ms2) & !filterValuesMS$ms1) svalue(filterInfoMS$ms1) <- TRUE 
   
-  # Disable Precursor MZ filter if only MS2 selected  
-  lapply(filterInfo$rt, function(i) enabled(i) <- svalue(filterInfoMS$ms2))
+  # Disable precursor-related filters when only MS1 are selected
+  ms2 <- svalue(filterInfoMS$ms2)
+  lapply(filterInfo[c("pmz", "spi", "pc", "mass")], 
+         function(x) lapply(x, 
+                            function(i) enabled(i) <- ms2))
   
-  # Filter!
+  # Filter spectra
   keep <- mapply(function(data, obj) {
     if(svalue(obj$active)) {
       btwn(data, svalue(obj$from), svalue(obj$to))
@@ -98,6 +108,7 @@ filterSpectra <- function(h, ...) {
   
   blockFilters(FALSE)
   
+  # Update sequence of spectra and update chart
   if(any(keep)) {
     newSequence <- spIndex()[keep]
     # Compare sequences and update if necessary
@@ -113,4 +124,11 @@ filterSpectra <- function(h, ...) {
       if(prevIndex!=newSequence[counter]) updateSpectrum()
     } 
   } else cat("\nNot a single spectrum survived filtering!")
+}
+
+filterXIC <- function(h, ...) {
+  blockFilters()
+  validityCheck(filterInfoXIC$XIC, filterData[[3]], filterValuesXIC)
+  
+  blockFilters(FALSE)
 }
