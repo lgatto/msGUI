@@ -218,10 +218,8 @@ plotSpectrumZoom <- function(limits=NULL) {
 #   par(mar=rep(.1, 4), mgp=c(3,1,0), tck=-.01, bty="n", lab=c(5, 3, 7), 
 #       adj=.5, las=1, cex=0.5)
 #   par(parSave)
-  print(par()$mar)
-  par(mar=c(2, 2, 0, 0), mgp=c(2,0.45,0), tck=-.01, bty="n", lab=c(5, 3, 7), 
+  par(mar=c(3, 3, 0, 0), mgp=c(2,0.45,0), tck=-.01, bty="n", lab=c(5, 3, 7), 
       adj=.5, las=1, cex=0.65)
-  print(par()$mar)
   plot(pks, xlab="Mass to charge ratio (M/Z)", ylab="Intensity", #zero.line=TRUE, 
        type = ifelse(spMsLevel(index)==1, "l", "h"), 
        xlim=limits$x, ylim=limits$y) 

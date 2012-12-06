@@ -324,22 +324,22 @@ drawMain <- function(env) {
     
   drawZoom <- function(env) {    
     env$zoomWindowClosed <- FALSE
-    env$zoomWindow <- gwindow("Spectrum fragment", visible=TRUE, 
+    env$zoomWindow <- gwindow("Spectrum fragment", visible=FALSE, 
                               handler=function(h, ...) {
                                 env$zoomWindowClosed <- TRUE
                                 env$spectrumZoom <- NULL
                                 plotSpectrum()
                                 })
     env$groupZoomMain <- ggroup(container=env$zoomWindow, horizontal=FALSE, expand=TRUE)
-    env$plotZoom <- ggraphics(width=400, height=400, container=env$groupZoomMain, dpi=96, ps=12)
+    env$plotZoom <- ggraphics(width=250, height=250, container=env$groupZoomMain, dpi=96, ps=12)
+    visible(zoomWindow) <- TRUE
     env$clickHandlerZoomIDs <- addHandlerChanged(env$plotZoom, handler=handlerClickZoom)
-    visible(plotZoom) <- TRUE
-    plotMsg("Refreshing...")
   }  
   
   fixX <- function(x, lower, upper) {
     if(device=="png") {
-      x <- ((x + .04) / 1.08 - 40/500) * 500 / (500 - 40 - 20) * (upper - lower) + lower
+      x <- ((x + .04) / 1.08 - 50/500) * 500 / (500 - 50 - 25) * (upper - lower) + lower
+#       x <- ((x + .04) / 1.08 - 40/500) * 500 / (500 - 40 - 20) * (upper - lower) + lower
       sapply(sapply(x, max, lower), min, upper) # so that coordinates don't exceed limits
     } else x
   }
@@ -351,8 +351,7 @@ drawMain <- function(env) {
     } else x
   }  
 
-  handlerClickSpectrum = function(h,...) {      
-#     clickSwitch(FALSE)
+  handlerClickSpectrum = function(h,...) {
     print(h)
     env$spectrumZoom <- list(x=fixX(h$x, 
                                     min(spLowMZ()[spMsLevel()==spMsLevel(index)]), 
@@ -364,14 +363,22 @@ drawMain <- function(env) {
                     "y:", spectrumZoom$y) 
     
     plotSpectrum(zoom=spectrumZoom)
-    if(zoomWindowClosed) drawZoom(env)  
-    visible(env$plotZoom) <- TRUE          
-    plotSpectrumZoom(spectrumZoom)    
-#     clickSwitch(TRUE)
+    if(zoomWindowClosed) {
+      drawZoom(env) 
+      visible(plotZoom) <- TRUE
+#       plotMsg("Refreshing...")
+#       Sys.sleep(1)
+      plotSpectrumZoom(spectrumZoom)      
+    } else {
+      visible(env$plotZoom) <- TRUE          
+      plotSpectrumZoom(spectrumZoom) 
+      
+    } 
   }   
   
   handlerClickZoom = function(h,...) {
-    if(verbose) cat("\nx:", h$x, "y: ", h$y)      
+    if(verbose) cat("\nx:", h$x, "y: ", h$y)
+    env$spectrumZoom <- h
     plotSpectrum(zoom=h)
     if(zoomWindowClosed) drawZoom(env)
     visible(env$plotZoom) <- TRUE          
@@ -383,21 +390,28 @@ drawMain <- function(env) {
     x <- xic(n=1, FALSE)
     xicRangeX <- range(x[, 1])
     xicRangeY <- range(x[, 2])
+#     browser()
     if(verbose) cat("\nXIC clicked on:", c(h$x, h$y), 
-                    "  fixed x:", fixX(h$x, xicrange[1], xicrange[2])) 
-#     if()
-    prevCounter <- counter    
-    env$counter <- which.min(abs(spRtime(currSequence)-fixX(h$x, xicrange[1], xicrange[2])))
-    
-    # update graphs if index has changed
-    if(prevCounter!=counter) updateSpectrum() 
+                    "  fixed x:", fixX(h$x, xicRangeX[1], xicRangeX[2])) 
+    if(h$x[1]==h$x[2] & h$y[1]==h$y[2]) {
+      prevCounter <- counter    
+      env$counter <- which.min(abs(spRtime(currSequence)-fixX(h$x, xicRangeX[1], xicRangeX[2])[1]))
+      
+      # update graphs if index has changed
+      if(prevCounter!=counter) updateSpectrum() 
+      
+      if(verbose) cat("displaying spectrum", currSequence[counter])
+    } else {
+      if(verbose) cat("displaying xic zoom")
+      
+    }
     
     
     clickSwitch(TRUE)   
   }
   
   env$clickHandlerIDs <- list()
-  env$clickHandlerIDs[[1]] <- addHandlerClicked(env$plotBottom, handler=handlerClickXIC)
+  env$clickHandlerIDs[[1]] <- addHandlerChanged(env$plotBottom, handler=handlerClickXIC)
   env$clickHandlerIDs[[2]] <- addHandlerChanged(env$plotTop, handler=handlerClickSpectrum)
 
   env$filterSpectraHandlerIDs <- lapply(env$filterInfo, 
