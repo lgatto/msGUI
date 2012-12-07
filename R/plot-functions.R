@@ -1,21 +1,24 @@
 plotMsg <- function(message) {
   par(mar=rep(0, 4))
-  plot(x=c(0, 1), y=c(0, 1), col="white", , bg="grey10", axes=FALSE)
-  text(x=.5, y=.5, labels=message)
+  plot(0:1, 0:1, col="transparent", axes=FALSE)
+  text(.5, .5, labels=message)
 }
 
-plotXIC <- function() {
+plotXIC <- function(zoom=NULL) {
   
   if(device=="png") {
-    if(is.null(cache$xic[[currSequence[counter]]])) {
+    if(is.null(cache$xic[[index]]) | !is.null(zoom)) {
       
       filename <- tempfile(fileext=".png")    
-      png(filename, width=500, height=250, restoreConsole=FALSE)    
-      plotChromatogram()    
+      if(.Platform$OS.type=="windows") 
+        png(filename, width=settings$width, height=settings$chromaHeight, restoreConsole=FALSE)
+      else 
+        png(filename, width=500, height=250)
+      plotChromatogram(zoom=zoom)    
       dev.off()    
-      env$cache$xic[[currSequence[counter]]] <- filename
+      env$cache$xic[[index]] <- filename
       
-    } else filename <- cache$xic[[currSequence[counter]]]
+    } else filename <- cache$xic[[index]]
     
     visible(plotBottom) <- TRUE 
     plotMsg("Refreshing...")  
@@ -27,70 +30,34 @@ plotXIC <- function() {
     visible(plotBottom) <- TRUE 
     plotChromatogram()    
     
-  } else if(device=="tkrplot") {
-    
-    if(plotBottomDrawn) {
-      
-      tkrreplot(plotBottom)
-      
-    } else {
-      
-      plotBottom <<- tkrplot(getToolkitWidget(groupPlots), 
-                          fun = plotChromatogram)
-      add(groupPlots, plotBottom)
-      
-      plotBottomDrawn <<- TRUE
-      
-    }
-    
-  } else if(device=="gimage") {    
-    
-    filename <- tempfile(fileext=".png")
-    png(filename, width=500, height=250)
-    
-    plotChromatogram()
-    
-    dev.off()
-    
-    svalue(plotBottom) <- filename 
-    
-  }
+  } 
   
 }
 
 plotSpectrum <- function(zoom=NULL) {
   
   if(device=="png") {
-    if(is.null(cache$spectra[[currSequence[counter]]]) | !is.null(zoom)) {
+    
+    if(is.null(cache$spectra[[index]]) | !is.null(zoom)) {
       
-      if(is.null(zoom) & verbose) cat("\ncaching", currSequence[counter])
-      
-      filename <- tempfile(fileext=".png")
-      
-      png(filename, width=500, height=250, restoreConsole=FALSE)
-      
+      if(is.null(zoom) & verbose) cat("\ncaching", index)
+      filename <- tempfile(fileext=".png")      
+      if(.Platform$OS.type=="windows") 
+        png(filename, width=settings$width, height=settings$spectrumHeight, restoreConsole=FALSE)
+      else 
+        png(filename, width=500, height=250)      
       plotSpectrumGraph(zoom=zoom)
-      
       dev.off()
-      
-      if(is.null(zoom)) env$cache$spectra[[currSequence[counter]]] <- filename
+      if(is.null(zoom)) env$cache$spectra[[index]] <- filename
       
     } else {
-      if(verbose) cat("\nloading", currSequence[counter], "from cache")
-      filename <- cache$spectra[[currSequence[counter]]]
+      
+      if(verbose) cat("\nloading", index, "from cache")
+      filename <- cache$spectra[[index]]
+      
     }
         
-    visible(plotTop) <- TRUE 
-#     grid::grid.raster(readPNG(filename), width=1, height=1) # Not specifying 
-    # whidth and height results in handlerChanged retrieving NaN and Inf 
-    # coordinates. 
-    
-    # Correction: specifying these does not help after all. The reason for 
-    # occasional bad coordinates is not clear. 
-    
-    # Another method without package:grob. Also works but graphs 
-    # flicker when reloading which is not super amazing.
-    
+    visible(plotTop) <- TRUE     
     plotMsg("Refreshing...")
     
     lim <- par()$usr
@@ -101,131 +68,119 @@ plotSpectrum <- function(zoom=NULL) {
     visible(plotTop) <- TRUE 
     plotSpectrumGraph(zoom=zoom)    
     
-  } else if(device=="tkrplot") {
-    
-    if(plotTopDrawn) {
-      
-      tkrreplot(plotTop)
-      
-    } else {
-      
-      plotTop <<- tkrplot(getToolkitWidget(groupPlots), 
-                     fun = plotSpectrumGraph)
-      add(groupPlots, plotTop)
-      
-      plotTopDrawn <<- TRUE
-      
-    }
-    
-  } else if(device=="gimage") {    
-    
-    filename <- tempfile(fileext=".png")
-    png(filename, width=500, height=250)
-    
-    plotSpectrumGraph(zoom=zoom)
-    
-    dev.off()
-    
-    svalue(plotTop) <- filename 
-    
-  }
+  } 
   
 }
 
-plotChromatogram <- function() {
+plotChromatogram <- function(zoom=NULL) {
   
-  dt <- xic(n=1, FALSE)
-  dtmax <- max(dt[, 2])
-  
-  dt[, 2] <- dt[, 2]/dtmax
-  
+  xic <- xic(n=1, FALSE)
+  maxTotalIons <- max(xic[, 2])  
+  xic[, 2] <- xic[, 2]/maxTotalIons
   par(mar=c(3,3,0,1), mgp=c(2,0.45,0), tck=-.01, bty="n", lab=c(5, 3, 7), 
       adj=.5, las=1, cex=0.75)
   
   time <- proc.time()
-  .GlobalEnv$.msgui <- FALSE
   
-  plot(dt, type = "l", ylim=c(0, 1.075), xlab="Retention time", ylab="Total ion count")
-#   abline(v=spRtime(index), col="red", lty=3)
-  # abline went too high. 
-  lines(x=rep(spRtime(currSequence[counter]), 2), y=c(0, 1), col="red", lty=3)
+  plot(xic, type = "l", ylim=c(0, 1.075), xlab="Retention time", ylab="Total ion count")
+  lines(x=rep(spRtime(index), 2), y=c(0, 1), col="red", lty=3)
+#   par()
+  text(x=min(xic[, 1]), y=1.075, adj=0, 
+       labels=paste("Max total ions ", maxTotalIons))
   
-  par(cex=.75, adj=0)
-  text(x=min(dt[, 1]), y=1.075, 
-       labels=paste("Max total ions ", dtmax))
-  
-  par(parSave)
-  time <- proc.time() - time
-  
-  .GlobalEnv$.msgui <- TRUE
-  
-  if(verbose) cat("\nxic:", dim(dt)[1], "data points plotted in", 
-      time[3]*1000, "miliseconds")
-}
-
-plotSpectrumGraph <- function(zoom=NULL) {
-  
-  pks <- peaks(currSequence[counter])
-  pksmax <- max(pks[, 2])
-  
-  mx <- pks[order(pks[, 2], decreasing=TRUE), ][1:5, ]
-  pks[, 2] <- pks[, 2]/pksmax
-  
-  time <- proc.time()
-  .GlobalEnv$.msgui <- FALSE
-  
-#   browser()
-  
-  env$parSave <- par(mar=c(3,3,0,1), mgp=c(2,0.45,0), tck=-.01, bty="n", lab=c(5, 3, 7), 
-      adj=.5, las=1, cex=0.75)
-  plot(pks, xlab="Mass to charge ratio (M/Z)", ylab="Intensity", 
-       type = ifelse(spMsLevel(index)==1, "l", "h"), 
-       xlim=c(min(spLowMZ()[spMsLevel()==spMsLevel(index)]), 
-              max(spHighMZ()[spMsLevel()==spMsLevel(index)])), 
-       ylim=c(0, 1.075)) 
-  text(x=mx[, 1], y=mx[, 2]/pksmax, labels=round(mx[, 1], digits=3), 
-       col="grey50", adj=c(0, 0))
-  par(cex=.75, adj=0)
-  text(x=min(spLowMZ()[spMsLevel()==spMsLevel(index)]), y=1.075, 
-       labels=paste("Base peak intensity ", pksmax))
-  abline(h=0, col="grey50")
   if(!is.null(zoom)) {
     lines(zoom$x[c(1, 1, 2, 2, 1)], zoom$y[c(1, 2, 2, 1, 1)], 
           col="grey25", lty=3)
   }
   
-  par(parSave)
+  if(verbose) {
+    time <- proc.time() - time
+    cat("\nxic:", dim(xic)[1], "data points plotted in", 
+      time[3]*1000, "miliseconds")
+  }
+}
+
+plotSpectrumGraph <- function(zoom=NULL) {
+
+  MsLevel <- spMsLevel(index)
+  peaks <- peaks(index)
+  basePeak <- max(peaks[, 2])
+  peaks[, 2] <- peaks[, 2]/basePeak  
+  labels <- peaks[order(peaks[, 2], decreasing=TRUE), ]  
+  xCoords <- labels[, 1]  
+  current <- 1  
+  out <- 1
+  
+  while(length(out) < settings$labelNumber) {
+    s <- 1
+    while(min(abs(xCoords[out] - xCoords[current+s])) <= settings$labelThreshold) s <- s + 1
+    out <- c(out, current <- current + s)
+  }
+  
+  labels <- labels[out, ]
+  
+  time <- proc.time()
+  
+  par(mar=c(3,3,0,1), mgp=c(2,0.45,0), tck=-.01, bty="n", lab=c(5, 3, 7), 
+      adj=.5, las=1, cex=0.75)
+  plot(peaks, xlab="Mass to charge ratio (M/Z)", ylab="Intensity", 
+       type = ifelse(MsLevel==1, settings$MS1PlotType, settings$MS2PlotType), 
+       xlim=xLimits[, MsLevel], ylim=c(0, 1.075)) 
+  text(labels, labels=round(labels[, 1], settings$digits), 
+       col="grey50", adj=c(0, 0))
+  par(adj=0)   
+  text(x=min(xLimits[, MsLevel]), y=1.075, 
+       labels=paste("Base peak intensity ", round(basePeak, settings$digits)))
+  
+  abline(h=0, col="grey50")
+  
+  if(!is.null(zoom)) {
+    lines(zoom$x[c(1, 1, 2, 2, 1)], zoom$y[c(1, 2, 2, 1, 1)], 
+          col="grey25", lty=3)
+  }
+  
   time <- proc.time() - time
   
-  .GlobalEnv$.msgui <- TRUE
-  
-  if(verbose) cat("\nspectrum:", dim(pks)[1], "data points plotted in", time[3]*1000, "miliseconds")
+  if(verbose) cat("\nspectrum:", dim(peaks)[1], "data points plotted in", time[3]*1000, "miliseconds")
   
 }
 
 plotSpectrumZoom <- function(limits=NULL) {
+  
   if(verbose) cat("\nlimits:", limits$x, limits$y)
   
-  .GlobalEnv$.msgui <- FALSE
-  pks <- peaks(index)
-  pksmax <- max(pks[, 2])
+  peaks <- peaks(index)
+  peaks[, 2] <- peaks[, 2]/max(peaks[, 2])  
   
-# attempt to make nice labels in the visible area of zoom chart
-#   mx <- pks[pks[, 1] > limits$x[1] | pks[, 1] < limits$x[2] | pks[, 2] > limits$y[1] | pks[, 2] < limits$y[2], ]
-#   mx <- mx[order(mx[, 2], decreasing=TRUE), ][1:5, ]
-  pks[, 2] <- pks[, 2]/pksmax
+  inFocus <- peaks[, 1] > limits$x[1] & peaks[, 1] < limits$x[2]
+  inFocus <- inFocus & peaks[, 2] > limits$y[1] & peaks[, 2] < limits$y[2]
+  numberInFocus <- sum(inFocus)
   
-#   par(mar=rep(.1, 4), mgp=c(3,1,0), tck=-.01, bty="n", lab=c(5, 3, 7), 
-#       adj=.5, las=1, cex=0.5)
-#   par(parSave)
   par(mar=c(3, 3, 0, 0), mgp=c(2,0.45,0), tck=-.01, bty="n", lab=c(5, 3, 7), 
       adj=.5, las=1, cex=0.65)
-  plot(pks, xlab="Mass to charge ratio (M/Z)", ylab="Intensity", #zero.line=TRUE, 
-       type = ifelse(spMsLevel(index)==1, "l", "h"), 
+  plot(peaks, xlab="Mass to charge ratio (M/Z)", ylab="Intensity", 
+       type = ifelse(spMsLevel(index)==1, settings$MS1PlotType, settings$MS2PlotType), 
        xlim=limits$x, ylim=limits$y) 
-#   text(x=mx[, 1], y=mx[, 2]/pksmax, labels=round(mx[, 1], digits=3), 
-#        col="grey50", adj=c(0, 0))
+  if(numberInFocus>0) {    
+    labels <- peaks[inFocus, , drop=FALSE]
+    labels <- labels[order(labels[, 2], decreasing=TRUE), , drop=FALSE]
+    labels <- labels[1:min(numberInFocus, settings$labelNumber), , drop=FALSE]
+    text(labels, labels=round(labels[, 1], digits=settings$digits), 
+         col="grey50", adj=c(0, 0))    
+  }
+  par(adj=1)
+  text(limits$x[2], limits$y[2], labels=paste("Acquisition number:", spIndex(index)))
+}
+
+plotChromaZoom <- function() {
   
-  .GlobalEnv$.msgui <- TRUE
+  xic <- xic(n=1, FALSE)
+  maxTotalIons <- max(xic[, 2])
+  xic[, 2] <- xic[, 2]/maxTotalIons
+  
+  par(mar=c(3, 3, 0, 0), mgp=c(2,0.45,0), tck=-.01, bty="n", lab=c(5, 3, 7), 
+      adj=.5, las=1, cex=0.65)
+  plot(xic, type = "l", xlim=env$XICZoom$x, ylim=env$XICZoom$y, 
+       xlab="Retention time", ylab="Total ion count")
   
 }

@@ -1,23 +1,34 @@
-initialiseEnvironment <- function(env) {
-  assign("file.types", 
-         list("Mass spectrometry data files" = list(patterns = c("*.netCDF", "*.mzXML", "*.mzData", "*.mzML")), 
-              "R data files" = list(patterns = c("*.RData","*.rda")), 
-              "All files" = list(patterns = c("*"))), 
-         pos=env)
-  assign("digits", 2, pos=env)
-  assign("textHead", list(weight="bold", family="sans", 
-                          size=12, color="grey40"), pos=env)
-  assign("textReg", list(weight="light", family="sans", 
-                         size=8, color="grey10"), pos=env)
-  assign("textRegGrey", list(weight="light", family="sans", 
-                             size=8, color="grey50"), pos=env)
-  assign("textDeemp", list(weight="light", family="sans", 
-                           size=8, color="grey50"), pos=env)
+defaultSettings <- function() {
+  
+  fileTypes <- list("Mass spectrometry data files" = list(patterns = c("*.netCDF", "*.mzXML", "*.mzData", "*.mzML")), 
+                    "R data files" = list(patterns = c("*.RData","*.rda")), 
+                    "All files" = list(patterns = c("*")))
+  digits <- 2
+  
+  labelNumber <- 5
+  labelThreshold <- 2
+  
+  MS1PlotType <- "l"
+  MS2PlotType <- "h"
+  
+  chromaHeight <- 250
+  spectrumHeight <- 250
+  width <- 500
+  
+  # Fonts
+  fontHead <- list(weight="bold", family="sans", size=12, color="grey40")
+  fontReg <- list(weight="light", family="sans", size=8, color="grey10")
+  fontRegGrey <- list(weight="light", family="sans", size=8, color="grey50")
+  fontDeemp <- list(weight="light", family="sans", size=8, color="grey50")
+  
+  return(environment())
 }
 
 initialiseGUI <- function() {  
+  
   visible(msGUIWindow) <- TRUE  
   enabled(buttonLeft) <- FALSE
   enabled(buttonRight) <- FALSE
   filterSwitch(FALSE)
+  
 }

@@ -2,10 +2,10 @@ wrapper <- function(filename=NULL, device="png", verbose=FALSE) {
   
   env <- environment()
   
-  initialiseEnvironment(env)
+  settings <- defaultSettings()
+  
   zoomWindowClosed <- TRUE
-  settings <- list()
-  settings$allowMultipleWindows <- FALSE
+  XICWindowClosed <- TRUE
   spectrumZoom <- NULL
   
   environment(openFileHandler) <- env  
@@ -32,6 +32,7 @@ wrapper <- function(filename=NULL, device="png", verbose=FALSE) {
   environment(getObjects) <- env
   environment(openObject) <- env
   environment(drawVarBrowser) <- env
+  environment(plotChromaZoom) <- env
   environment(resetCache) <- env
   
   drawMain(env)
@@ -44,7 +45,7 @@ wrapper <- function(filename=NULL, device="png", verbose=FALSE) {
 }
 
 updateExperimentInfo <- function() {
-  precMzRange <- round(expPrecMzRange(), digits=digits)
+  precMzRange <- round(expPrecMzRange(), digits=settings$digits)
   svalue(expInfo$rtfrom) <- formatRt(expRtRange()[1])
   svalue(expInfo$rtto) <- formatRt(expRtRange()[2])
   svalue(expInfo$pmzfrom) <- precMzRange[1]
@@ -60,7 +61,12 @@ counterReset <- function(env) {
 
 updateExperiment <- function(env) {  
   updateExperimentInfo()
-  env$filterData <- list(spRtime(), spIndex(), spPrecMz(), spPrecInt(), spPrecCharge(), spPrecMz()*spPrecCharge())
+  
+  env$filterData <- list(spRtime(), spIndex(), spPrecMz(), 
+                         spPrecInt(), spPrecCharge(), spPrecMz()*spPrecCharge())
+  env$xLimits <- sapply(unique(spMsLevel()), 
+                        function(i) c(min(spLowMZ()[spMsLevel()==i]), 
+                                      max(spHighMZ()[spMsLevel()==i])))
   resetCache()
   counterReset(env)    
   filterReset(env)    
@@ -76,9 +82,9 @@ updateSpectrum <- function(h=list(action=0), ...) {
   svalue(specInfo$ind) <- paste(counter, " of ", length(currSequence))
   svalue(specInfo$acno) <- spIndex(index)
   svalue(specInfo$mslvl) <- spMsLevel(index)  
-  svalue(specPrecInfo$pmz) <- round(spPrecMz(index), digits=digits)
-  svalue(specPrecInfo$int) <- round(spPrecInt(index), digits=digits)
-  svalue(specPrecInfo$charge) <- round(spPrecCharge(index), digits=digits) 
+  svalue(specPrecInfo$pmz) <- round(spPrecMz(index), digits=settings$digits)
+  svalue(specPrecInfo$int) <- round(spPrecInt(index), digits=settings$digits)
+  svalue(specPrecInfo$charge) <- round(spPrecCharge(index), digits=settings$digits) 
   
   # kill precursor info for MS1
   dispPrec <- spMsLevel(index)==2  
@@ -90,11 +96,11 @@ updateSpectrum <- function(h=list(action=0), ...) {
   clickSwitch(FALSE)  
   
   plotSpectrum(spectrumZoom)
-  plotXIC() 
   if(!zoomWindowClosed) {
     visible(env$plotZoom) <- TRUE      
     plotSpectrumZoom(spectrumZoom)
   }
+  plotXIC() 
   
   clickSwitch(TRUE)
   buttonSwitch(TRUE)
@@ -142,11 +148,12 @@ buttonSwitch <- function(action=TRUE) {
 
 openFileHandler <- function(h, ...) {
   filename <- gfile(text = "Open file", type = "open", 
-                    filter = file.types, handler=function(h, ...) NULL)
+                    filter = settings$fileTypes, 
+                    handler=function(h, ...) NULL)
   if(!is.na(filename)) {
-    envir <- parent.env(environment())
-    makeMzRrampAccessors(filename, envir)
-    updateExperiment(envir)      
+#     envir <- parent.env(environment())
+    makeMzRrampAccessors(filename, env) #envir)
+    updateExperiment(env) #ir)      
   }
 }
 
@@ -155,7 +162,7 @@ drawMain <- function(env) {
   # Window and structure
   env$msGUIWindow <- gwindow("msGUI", visible=FALSE, handler=function(h, ...) {
     if(!zoomWindowClosed) dispose(zoomWindow)
-    
+    if(!XICWindowClosed) dispose(XICWindow)
     # Clean-up cache
     if(class(cache)!="function") {
       files <- unlist(cache$spectra[!sapply(cache$spectra, is.null)])
@@ -163,6 +170,8 @@ drawMain <- function(env) {
       files <- unlist(cache$xic[!sapply(cache$xic, is.null)])
       if(length(files)>0) file.remove(files)      
     }
+    # Clean-up graphics devices    
+    sapply(dev.list()[grepl("^png", names(dev.list()))], dev.off)
   })
   env$groupMain <- ggroup(container=msGUIWindow, horizontal=FALSE) 
   env$groupUpper <- ggroup(container=groupMain)
@@ -268,7 +277,7 @@ drawMain <- function(env) {
   le[i + 6, 1] <- (env$filterInfo$mass$active <- gcheckbox("Precursor mass", container=le))
   le[i + 6, 2] <- (env$filterInfo$mass$from <- gedit("", container=le, width=5))
   le[i + 6, 3] <- (env$filterInfo$mass$to <- gedit("", container=le, width=5))
-    
+  
   le[i + 7, 1:5] <- (env$separator$t3 <- glabel("", container=le))
   
   le[i + 8, 1, anchor=c(-1,0)] <- (env$regular$t12 <- glabel("Display MS levels", container=le))
@@ -294,34 +303,26 @@ drawMain <- function(env) {
   env$buttonRight <- gbutton(text=gettext("Next"), handler=updateSpectrum, 
                              action=1, cont=env$groupLeftButtons)
   
-  if(any(c("cairo", "png")==device)) {
-    
-    env$plotTop <- ggraphics(container=env$groupPlots, width=500, height=250, ps=12, dpi=75)
-    env$plotBottom <- ggraphics(container=env$groupPlots, width=500, height=250, ps=12, dpi=75)
-    
-  } else if(device=="gimage"){
+  env$plotTop <- ggraphics(container=env$groupPlots, width=500, height=250, ps=12, dpi=75)
+  env$plotBottom <- ggraphics(container=env$groupPlots, width=500, height=250, ps=12, dpi=75)
   
-    env$plotTop <- gimage(container=env$groupPlots)
-    env$plotBottom <- gimage(container=env$groupPlots)
-    
-  } else if(device=="tkrplot") {
-    
-    plotTopDrawn <<- plotBottomDrawn <<- FALSE
-    
-  } else stop("Unimplemented device!")
-
   # Styling
-  lapply(env$headings, function(x) font(x) <- env$textHead)
-  lapply(env$regular, function(x) font(x) <- env$textReg)
-  lapply(env$regularPrec, function(x) font(x) <- env$textReg)
-  lapply(env$deemp, function(x) font(x) <- env$textDeemp)
-  lapply(env$expInfo, function(x) font(x) <- env$textReg)
-  lapply(env$specInfo, function(x) font(x) <- env$textReg)
-  lapply(env$separator, function(x) font(x) <- list(size=4))
-  lapply(env$filterInfoMS, function(x) font(x) <- env$textReg)
-  lapply(env$filterInfo, function(x) lapply(x, function(i) font(i) <- env$textReg)) 
-  lapply(env$filterInfoXIC, function(x) lapply(x, function(i) font(i) <- env$textReg)) 
-    
+  
+  setFont <- function(x, style) font(x) <- style
+  
+  lapply(headings, setFont, settings$fontHead)
+  lapply(regular, setFont, settings$fontReg)
+  lapply(regularPrec, setFont, settings$fontReg)
+  lapply(deemp, setFont, settings$fontDeemp)
+  lapply(expInfo, setFont, settings$fontReg)
+  lapply(specInfo, setFont, settings$fontReg)
+  lapply(separator, setFont, list(size=4))
+  lapply(filterInfoMS, setFont, settings$fontReg)
+  lapply(filterInfo, function(x) lapply(x, setFont, settings$fontReg)) 
+  lapply(filterInfoXIC, function(x) lapply(x, setFont, settings$fontReg)) 
+  
+  # Zoom handlers and GUI functions
+  
   drawZoom <- function(env) {    
     env$zoomWindowClosed <- FALSE
     env$zoomWindow <- gwindow("Spectrum fragment", visible=FALSE, 
@@ -329,17 +330,31 @@ drawMain <- function(env) {
                                 env$zoomWindowClosed <- TRUE
                                 env$spectrumZoom <- NULL
                                 plotSpectrum()
-                                })
+                              })
     env$groupZoomMain <- ggroup(container=env$zoomWindow, horizontal=FALSE, expand=TRUE)
     env$plotZoom <- ggraphics(width=250, height=250, container=env$groupZoomMain, dpi=96, ps=12)
     visible(zoomWindow) <- TRUE
     env$clickHandlerZoomIDs <- addHandlerChanged(env$plotZoom, handler=handlerClickZoom)
-  }  
+  }   
+  
+  drawZoomXIC <- function() {    
+    env$XICWindowClosed <- FALSE
+    env$XICWindow <- gwindow("XIC", visible=FALSE, 
+                             handler=function(h, ...) {
+                               env$XICWindowClosed <- TRUE
+                               env$XICZoom <- NULL
+                               plotXIC()
+                             })
+    env$groupXICMain <- ggroup(container=env$XICWindow, horizontal=FALSE, expand=TRUE)
+    env$plotXICw <- ggraphics(width=250, height=250, container=env$groupXICMain, dpi=96, ps=12)
+    visible(XICWindow) <- TRUE
+#     env$clickHandlerZoomXICIDs <- addHandlerChanged(env$plotZoomXIC, handler=handlerClickZoomXIC)
+  } 
   
   fixX <- function(x, lower, upper) {
     if(device=="png") {
       x <- ((x + .04) / 1.08 - 50/500) * 500 / (500 - 50 - 25) * (upper - lower) + lower
-#       x <- ((x + .04) / 1.08 - 40/500) * 500 / (500 - 40 - 20) * (upper - lower) + lower
+      #       x <- ((x + .04) / 1.08 - 40/500) * 500 / (500 - 40 - 20) * (upper - lower) + lower
       sapply(sapply(x, max, lower), min, upper) # so that coordinates don't exceed limits
     } else x
   }
@@ -350,9 +365,8 @@ drawMain <- function(env) {
       sapply(sapply(x, max, lower), min, upper)
     } else x
   }  
-
+  
   handlerClickSpectrum = function(h,...) {
-    print(h)
     env$spectrumZoom <- list(x=fixX(h$x, 
                                     min(spLowMZ()[spMsLevel()==spMsLevel(index)]), 
                                     max(spHighMZ()[spMsLevel()==spMsLevel(index)])), 
@@ -363,17 +377,9 @@ drawMain <- function(env) {
                     "y:", spectrumZoom$y) 
     
     plotSpectrum(zoom=spectrumZoom)
-    if(zoomWindowClosed) {
-      drawZoom(env) 
-      visible(plotZoom) <- TRUE
-#       plotMsg("Refreshing...")
-#       Sys.sleep(1)
-      plotSpectrumZoom(spectrumZoom)      
-    } else {
-      visible(env$plotZoom) <- TRUE          
-      plotSpectrumZoom(spectrumZoom) 
-      
-    } 
+    if(zoomWindowClosed) drawZoom(env)
+    visible(plotZoom) <- TRUE
+    plotSpectrumZoom(spectrumZoom)
   }   
   
   handlerClickZoom = function(h,...) {
@@ -389,13 +395,15 @@ drawMain <- function(env) {
     clickSwitch(FALSE)
     x <- xic(n=1, FALSE)
     xicRangeX <- range(x[, 1])
-    xicRangeY <- range(x[, 2])
-#     browser()
-    if(verbose) cat("\nXIC clicked on:", c(h$x, h$y), 
-                    "  fixed x:", fixX(h$x, xicRangeX[1], xicRangeX[2])) 
+#     xicRangeY <- range(x[, 2])
+    env$XICZoom$x <- fixX(h$x, xicRangeX[1], xicRangeX[2])
+    env$XICZoom$y <- fixY(h$y, 0, 1) #xicRangeY[1], xicRangeY[2])
+    
+    if(verbose) cat("\nXIC clicked on:", c(h$x, h$y), " fixed x:", XICZoom$x) 
+    
     if(h$x[1]==h$x[2] & h$y[1]==h$y[2]) {
       prevCounter <- counter    
-      env$counter <- which.min(abs(spRtime(currSequence)-fixX(h$x, xicRangeX[1], xicRangeX[2])[1]))
+      env$counter <- which.min(abs(spRtime(currSequence)-XICZoom$x[1]))
       
       # update graphs if index has changed
       if(prevCounter!=counter) updateSpectrum() 
@@ -403,7 +411,10 @@ drawMain <- function(env) {
       if(verbose) cat("displaying spectrum", currSequence[counter])
     } else {
       if(verbose) cat("displaying xic zoom")
-      
+      if(XICWindowClosed) drawZoomXIC()
+      visible(plotXICw) <- TRUE
+      plotChromaZoom()
+      plotXIC(XICZoom)
     }
     
     
@@ -413,24 +424,24 @@ drawMain <- function(env) {
   env$clickHandlerIDs <- list()
   env$clickHandlerIDs[[1]] <- addHandlerChanged(env$plotBottom, handler=handlerClickXIC)
   env$clickHandlerIDs[[2]] <- addHandlerChanged(env$plotTop, handler=handlerClickSpectrum)
-
+  
   env$filterSpectraHandlerIDs <- lapply(env$filterInfo, 
                                         function(i) lapply(i, addHandlerChanged, 
                                                            handler=filterSpectra))
-#   env$filterSpectraHandlerIDs <- c(filterSpectraHandlerIDs, 
-#                                    lapply(env$filterInfo, 
-#                                         function(i) lapply(i, addHandlerBlur, 
-#                                                            handler=filterSpectra)))
-#   # error:
-#   (rsession.exe:7992): Gtk-WARNING **: GtkEntry - did not receive focus-out-event. If you
-#   connect a handler to this signal, it must return
-#   FALSE so the entry gets the event as well
-    
+  #   env$filterSpectraHandlerIDs <- c(filterSpectraHandlerIDs, 
+  #                                    lapply(env$filterInfo, 
+  #                                         function(i) lapply(i, addHandlerBlur, 
+  #                                                            handler=filterSpectra)))
+  #   # error:
+  #   (rsession.exe:7992): Gtk-WARNING **: GtkEntry - did not receive focus-out-event. If you
+  #   connect a handler to this signal, it must return
+  #   FALSE so the entry gets the event as well
+  
   env$filterSpectraMSHandlerIDs <- lapply(env$filterInfoMS, addHandlerChanged, 
-                                                           handler=filterSpectra)
+                                          handler=filterSpectra)
   env$filterXICHandlerIDs <- lapply(env$filterInfoXIC, 
-                                        function(i) lapply(i, addHandlerChanged, 
-                                                           handler=filterXIC))
+                                    function(i) lapply(i, addHandlerChanged, 
+                                                       handler=filterXIC))
 }
 
 getObjects <- function(classes="All classes") {
@@ -465,24 +476,24 @@ drawVarBrowser <- function(h, ...) {
                         handler=function(h, ...) 
                           tableVB[] <- getObjects(svalue(filterVB)), 
                         items=c("MSnExp", "All classes"))
-#   
-#   text <- glabel("Filter objects by class: ", container=panelVBtop)
-#   filterVB <- gcombobox(container=panelVBtop, 
-#                         handler=function(h, ...) 
-#                           tableVB[] <- getObjects(svalue(filterVB)), 
-#                         items=c("MSnExp", "All classes"))
-#   layoutVB <- glayout(spacing=2, container=panelVBtop)
-#   layoutVB[1, 1] <- glabel("Filter objects by class: ", container=layoutVB)
-#   layoutVB[1, 2] <- (filterVB <- gcombobox(container=layoutVB, 
-#                         handler=function(h, ...) 
-#                           tableVB[] <- getObjects(svalue(filterVB)), 
-#                         items=c("MSnExp", "All classes")))
-#   
-#   layoutVB[2, 1] <- glabel("Filter objects by class: ", container=layoutVB)
-#   layoutVB[2, 2] <- (filter2VB <- gcombobox(container=layoutVB, 
-#                         handler=function(h, ...) 
-#                           tableVB[] <- getObjects(svalue(filter2VB)), 
-#                         items=c("MSnExp", "All classes")))
+  #   
+  #   text <- glabel("Filter objects by class: ", container=panelVBtop)
+  #   filterVB <- gcombobox(container=panelVBtop, 
+  #                         handler=function(h, ...) 
+  #                           tableVB[] <- getObjects(svalue(filterVB)), 
+  #                         items=c("MSnExp", "All classes"))
+  #   layoutVB <- glayout(spacing=2, container=panelVBtop)
+  #   layoutVB[1, 1] <- glabel("Filter objects by class: ", container=layoutVB)
+  #   layoutVB[1, 2] <- (filterVB <- gcombobox(container=layoutVB, 
+  #                         handler=function(h, ...) 
+  #                           tableVB[] <- getObjects(svalue(filterVB)), 
+  #                         items=c("MSnExp", "All classes")))
+  #   
+  #   layoutVB[2, 1] <- glabel("Filter objects by class: ", container=layoutVB)
+  #   layoutVB[2, 2] <- (filter2VB <- gcombobox(container=layoutVB, 
+  #                         handler=function(h, ...) 
+  #                           tableVB[] <- getObjects(svalue(filter2VB)), 
+  #                         items=c("MSnExp", "All classes")))
   
   
   tableVB <- gtable(container=panelVBmiddle, items=getObjects(svalue(filterVB)), expand=TRUE)
