@@ -1,72 +1,45 @@
-plotMsg <- function(message) {
+plotMsg <- function(message="Nothing to display", col="grey50") {
   par(mar=rep(0, 4))
   plot(0:1, 0:1, col="transparent", axes=FALSE)
-  text(.5, .5, labels=message)
+  text(.5, .5, labels=message, cex=.65, col=col)
 }
 
-plotXIC <- function(zoom=NULL) {
-  
-  if(device=="png") {
-    if(is.null(cache$xic[[index]]) | !is.null(zoom)) {
-      
-      filename <- tempfile(fileext=".png")    
-      if(.Platform$OS.type=="windows") 
-        png(filename, width=settings$width, height=settings$chromaHeight, restoreConsole=FALSE)
-      else 
-        png(filename, width=500, height=250)
-      plotChromatogram(zoom=zoom)    
-      dev.off()    
-      env$cache$xic[[index]] <- filename
-      
-    } else filename <- cache$xic[[index]]
-    
-    visible(plotBottom) <- TRUE 
-    plotMsg("Refreshing...")  
-    lim <- par()$usr
-    rasterImage(readPNG(filename), lim[1], lim[3], lim[2], lim[4], interpolate=FALSE)
-    
-  } else if(device=="cairo") {
-    
-    visible(plotBottom) <- TRUE 
-    plotChromatogram()    
-    
-  } 
-  
-}
+plotXIC <- function(zoom=NULL) 
+  plotGeneric(zoom=zoom, cacheName="xic", 
+              height=settings$chromaHeight, width=settings$width, 
+              fun=plotChromatogram, plotObject=plotBottom)
 
-plotSpectrum <- function(zoom=NULL) {
+plotSpectrum <- function(zoom=NULL) 
+  plotGeneric(zoom=zoom)
+
+plotGeneric <- function(zoom=NULL, cacheName="spectra", 
+                        height=settings$spectrumHeight, width=settings$width, 
+                        fun=plotSpectrumGraph, 
+                        plotObject=plotTop) {
   
   if(device=="png") {
     
-    if(is.null(cache$spectra[[index]]) | !is.null(zoom)) {
-      
+    if(is.null(cache[[cacheName]][[index]]) | !is.null(zoom)) {
       if(is.null(zoom) & verbose) cat("\ncaching", index)
-      filename <- tempfile(fileext=".png")      
+      
+      filename <- tempfile(fileext=".png") 
       if(.Platform$OS.type=="windows") 
         png(filename, width=settings$width, height=settings$spectrumHeight, restoreConsole=FALSE)
       else 
-        png(filename, width=500, height=250)      
-      plotSpectrumGraph(zoom=zoom)
-      dev.off()
-      if(is.null(zoom)) env$cache$spectra[[index]] <- filename
-      
-    } else {
-      
-      if(verbose) cat("\nloading", index, "from cache")
-      filename <- cache$spectra[[index]]
-      
-    }
-        
-    visible(plotTop) <- TRUE     
-    plotMsg("Refreshing...")
+        png(filename, width=500, height=250)  
+      fun(zoom=zoom)    
+      dev.off()    
+      if(is.null(zoom)) env$cache[[cacheName]][[index]] <- filename
+    } else filename <- cache[[cacheName]][[index]]
     
+    visible(plotObject) <- TRUE
     lim <- par()$usr
     rasterImage(readPNG(filename), lim[1], lim[3], lim[2], lim[4], interpolate=FALSE)
-        
+    
   } else if(device=="cairo") {
     
-    visible(plotTop) <- TRUE 
-    plotSpectrumGraph(zoom=zoom)    
+    visible(plotObject) <- TRUE 
+    fun(zoom=zoom)    
     
   } 
   
@@ -84,7 +57,6 @@ plotChromatogram <- function(zoom=NULL) {
   
   plot(xic, type = "l", ylim=c(0, 1.075), xlab="Retention time", ylab="Total ion count")
   lines(x=rep(spRtime(index), 2), y=c(0, 1), col="red", lty=3)
-#   par()
   text(x=min(xic[, 1]), y=1.075, adj=0, 
        labels=paste("Max total ions ", maxTotalIons))
   

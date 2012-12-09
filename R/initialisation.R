@@ -27,6 +27,10 @@ defaultSettings <- function() {
 initialiseGUI <- function() {  
   
   visible(msGUIWindow) <- TRUE  
+  visible(plotTop) <- TRUE
+  plotMsg()
+  visible(plotBottom) <- TRUE
+  plotMsg()
   enabled(buttonLeft) <- FALSE
   enabled(buttonRight) <- FALSE
   filterSwitch(FALSE)

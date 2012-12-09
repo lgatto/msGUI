@@ -1,4 +1,5 @@
 library(gWidgets)
+library(MSnbase)
 library(mzR)
 library(png)
 source("R/middle-layer.R")

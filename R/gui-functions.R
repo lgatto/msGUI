@@ -7,6 +7,7 @@ wrapper <- function(filename=NULL, device="png", verbose=FALSE) {
   zoomWindowClosed <- TRUE
   XICWindowClosed <- TRUE
   spectrumZoom <- NULL
+  XICZoom <- NULL
   
   environment(openFileHandler) <- env  
   environment(drawMain) <- env  
@@ -24,6 +25,7 @@ wrapper <- function(filename=NULL, device="png", verbose=FALSE) {
   environment(initialiseGUI) <- env
   environment(plotXIC) <- env
   environment(plotSpectrum) <- env  
+  environment(plotGeneric) <- env
   environment(plotSpectrumGraph) <- env 
   environment(plotChromatogram) <- env 
   environment(buttonSwitch) <- env
@@ -100,7 +102,7 @@ updateSpectrum <- function(h=list(action=0), ...) {
     visible(env$plotZoom) <- TRUE      
     plotSpectrumZoom(spectrumZoom)
   }
-  plotXIC() 
+  plotXIC(XICZoom) 
   
   clickSwitch(TRUE)
   buttonSwitch(TRUE)
@@ -303,8 +305,10 @@ drawMain <- function(env) {
   env$buttonRight <- gbutton(text=gettext("Next"), handler=updateSpectrum, 
                              action=1, cont=env$groupLeftButtons)
   
-  env$plotTop <- ggraphics(container=env$groupPlots, width=500, height=250, ps=12, dpi=75)
-  env$plotBottom <- ggraphics(container=env$groupPlots, width=500, height=250, ps=12, dpi=75)
+  env$plotTop <- ggraphics(container=env$groupPlots, width=500, height=250, 
+                           ps=12, dpi=75)
+  env$plotBottom <- ggraphics(container=env$groupPlots, width=500, height=250, 
+                              ps=12, dpi=75)
   
   # Styling
   
