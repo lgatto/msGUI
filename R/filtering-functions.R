@@ -33,15 +33,23 @@ filterReset <- function(env) {
   
   # Filter for XIC
   mapply(updateRanges, filterInfoXIC, list(spPrecMz()))
-  
+    
   saveFilterValues()  
   blockFilters(FALSE)
+  
 }
 
 filterSwitch <- function(on) {
   lapply(filterInfo, function(x) lapply(x, function(i) enabled(i) <- on))
   lapply(filterInfoXIC, function(x) lapply(x, function(i) enabled(i) <- on))
   lapply(filterInfoMS, function(x) enabled(x) <- on)
+  
+  if(!env$anyMS1spectra) {
+    svalue(filterInfoMS[[1]]) <- FALSE
+    svalue(filterInfoMS[[2]]) <- TRUE
+    lapply(filterInfoMS, function(x) enabled(x) <- FALSE)
+    lapply(filterInfoXIC, function(x) lapply(x, function(i) enabled(i) <- FALSE))
+  }
 }
 
 btwn <- function(x, from, to) {
@@ -81,7 +89,19 @@ filterSpectra <- function(h, ...) {
   
   # Check entered values, fix if needed
   mapply(validityCheck, filterInfo, filterData, filterValues)
-    
+  mapply(validityCheck, filterInfoXIC, filterData[3], filterValuesXIC)
+  
+  # If XIC filter active, its values are forced upon the Precursor MZ filter
+  if(env$anyMS1spectra & svalue(filterInfoXIC$XIC$active)) {
+    svalue(filterInfo$pmz$active) <- TRUE
+    svalue(filterInfo$pmz$from) <- svalue(filterInfoXIC$XIC$from)
+    svalue(filterInfo$pmz$to) <- svalue(filterInfoXIC$XIC$to)
+  }
+  
+  updateXIC <- FALSE
+  if(svalue(filterInfoXIC$XIC$active)!=filterValuesXIC$XIC$active & anyMS1spectra)
+    updateXIC <- TRUE
+  
   # Make sure at least one MS level is selected
   if(!svalue(filterInfoMS$ms1) & !filterValuesMS$ms2) svalue(filterInfoMS$ms2) <- TRUE
   if(!svalue(filterInfoMS$ms2) & !filterValuesMS$ms1) svalue(filterInfoMS$ms1) <- TRUE 
@@ -108,6 +128,29 @@ filterSpectra <- function(h, ...) {
   
   blockFilters(FALSE)
   
+  # XIC filtering
+  if(env$anyMS1spectra) {
+    
+    if(svalue(filterInfoXIC$XIC$active)) {
+#       browser()
+      from <- svalue(filterInfoXIC$XIC$from)
+      to <- svalue(filterInfoXIC$XIC$to)
+      # This looks at each group of MS2 spectra and returns TRUE if any spectrum 
+      # in that group survived filtering
+      filtered <- apply(MS2indices, 1, function(x) any(btwn(filterData[[3]][x[1]:x[2]], 
+                                                            from, to))) 
+      # Now get the indices of MS1 spectra that are just before these MS2 spectra
+      MS1indices <- MS2indices[filtered, 1] - 1
+      # Recalculate these indices for data.frame with MS1 spectra only 
+      
+      MS1indicesL <- rep(FALSE, nSpectra)
+      MS1indicesL[MS1indices] <- TRUE
+      
+      env$XICvalues <- MS1indicesL[spMsLevel()==1]
+      updateXIC <- TRUE
+    } else env$XICvalues <- TRUE
+  }
+  
   # Update sequence of spectra and update chart
   if(any(keep)) {
     newSequence <- spIndex()[keep]
@@ -121,10 +164,20 @@ filterSpectra <- function(h, ...) {
       env$counter <- which.min(abs(newSequence - prevIndex))
       
       # also update graphs if index has changed
-      if(prevIndex!=newSequence[counter]) updateSpectrum()
+      if(prevIndex!=newSequence[counter]) {
+        updateXIC <- FALSE
+        updateSpectrum()
+      }
       else updateSpectrumInfo()
     } 
   } else cat("\nNot a single spectrum survived filtering!")
+  if(updateXIC) {
+    plotXIC(XICZoom, noCache=TRUE) 
+    if(!zoomWindowClosed) {
+      visible(env$plotZoom) <- TRUE      
+      plotSpectrumZoom(spectrumZoom)
+    }
+  }
 }
 
 filterXIC <- function(h, ...) {

@@ -8,6 +8,9 @@ wrapper <- function(filename=NULL, device="png", verbose=FALSE) {
   XICWindowClosed <- TRUE
   spectrumZoom <- NULL
   XICZoom <- NULL
+  anyMS1spectra <- TRUE
+  XICvalues <- TRUE
+  experimentLoaded <- FALSE
   
   environment(openFileHandler) <- env  
   environment(drawMain) <- env  
@@ -38,6 +41,7 @@ wrapper <- function(filename=NULL, device="png", verbose=FALSE) {
   environment(plotChromaZoom) <- env
   environment(resetCache) <- env
   environment(drawOptions) <- env
+  environment(optsHandlerDefaults) <- env
   
   drawMain(env)
   initialiseGUI()
@@ -45,6 +49,7 @@ wrapper <- function(filename=NULL, device="png", verbose=FALSE) {
   if(!is.null(filename)) {
     makeMzRrampAccessors(filename, env)
     updateExperiment(env)
+    experimentLoaded <- TRUE
   }   
 }
 
@@ -68,9 +73,23 @@ updateExperiment <- function(env) {
   
   env$filterData <- list(spRtime(), spIndex(), spPrecMz(), 
                          spPrecInt(), spPrecCharge(), spPrecMz()*spPrecCharge())
-  env$xLimits <- sapply(unique(spMsLevel()), 
-                        function(i) c(min(spLowMZ()[spMsLevel()==i]), 
-                                      max(spHighMZ()[spMsLevel()==i])))
+  # filterData stores data for filters for fast access. 
+  
+  env$nSpectra <- length(filterData[[1]])
+  env$xLimits <- sapply(1:2, function(i) if(any(spMsLevel()==i)) 
+    c(min(spLowMZ()[spMsLevel()==i]), 
+      max(spHighMZ()[spMsLevel()==i])) 
+                        else rep(NA, 2))
+  env$anyMS1spectra <- any(spMsLevel()==1)
+  if(anyMS1spectra) {
+    dt <- cbind(spMsLevel(), spPrecMz())
+    where <- which(dt[, 1]==1)
+    frame <- cbind(where[-length(where)] + 1, where[-1] - 1)
+    env$MS2indices <- frame[frame[, 1] < frame[, 2], ]
+    
+    env$xLimitsXIC <- range(xic()[, 1])
+  }
+  
   resetCache()
   counterReset(env)    
   filterReset(env)    
@@ -106,10 +125,12 @@ updateSpectrum <- function(h=list(action=0), ...) {
   clickSwitch(FALSE)  
   
   plotSpectrum(spectrumZoom)
-  plotXIC(XICZoom) 
-  if(!zoomWindowClosed) {
-    visible(env$plotZoom) <- TRUE      
-    plotSpectrumZoom(spectrumZoom)
+  if(env$anyMS1spectra) {
+    plotXIC(XICZoom) 
+    if(!zoomWindowClosed) {
+      visible(env$plotZoom) <- TRUE      
+      plotSpectrumZoom(spectrumZoom)
+    }
   }
   
   clickSwitch(TRUE)
@@ -118,11 +139,14 @@ updateSpectrum <- function(h=list(action=0), ...) {
 
 clickSwitch <- function(on) {
   if(on) {
-    mapply(unblockHandler, list(plotBottom, plotTop), clickHandlerIDs) 
+    mapply(unblockHandler, list(plotTop, plotBottom), clickHandlerIDs) 
     if(verbose) cat("\nPlots interactive")
   } else {
-    mapply(blockHandler, list(plotBottom, plotTop), clickHandlerIDs) 
+    mapply(blockHandler, list(plotTop, plotBottom), clickHandlerIDs) 
     if(verbose) cat("\nPlot interactivity disabled")   
+  }
+  if(!env$anyMS1spectra) {
+    blockHandler(plotBottom, clickHandlerIDs[[2]])
   }
 }
 
@@ -161,9 +185,15 @@ openFileHandler <- function(h, ...) {
                     filter = settings$fileTypes, 
                     handler=function(h, ...) NULL)
   if(!is.na(filename)) {
-#     envir <- parent.env(environment())
+    if(experimentLoaded) {      
+      visible(plotTop) <- TRUE
+      plotMsg()
+      visible(plotBottom) <- TRUE
+      plotMsg()
+    }
     makeMzRrampAccessors(filename, env) #envir)
-    updateExperiment(env) #ir)      
+    updateExperiment(env)    
+    experimentLoaded <- TRUE
   }
 }
 
@@ -297,7 +327,7 @@ drawMain <- function(env) {
   
   le[i + 9, 1:5] <- (env$separator$t9 <- glabel("", container=le))
   
-  le[i + 10, 1] <- (env$filterInfoXIC$XIC$active <- gcheckbox("XIC", container=le))
+  le[i + 10, 1] <- (env$filterInfoXIC$XIC$active <- gcheckbox("Prec M/Z for XIC", container=le))
   le[i + 10, 2] <- (env$filterInfoXIC$XIC$from <- gedit("", container=le, width=5))
   le[i + 10, 3] <- (env$filterInfoXIC$XIC$to <- gedit("", container=le, width=5))
   
@@ -443,8 +473,8 @@ drawMain <- function(env) {
   }
   
   env$clickHandlerIDs <- list()
-  env$clickHandlerIDs[[1]] <- addHandlerChanged(env$plotBottom, handler=handlerClickXIC)
-  env$clickHandlerIDs[[2]] <- addHandlerChanged(env$plotTop, handler=handlerClickSpectrum)
+  env$clickHandlerIDs[[1]] <- addHandlerChanged(env$plotTop, handler=handlerClickSpectrum)
+  env$clickHandlerIDs[[2]] <- addHandlerChanged(env$plotBottom, handler=handlerClickXIC)
   
   env$filterSpectraHandlerIDs <- lapply(env$filterInfo, 
                                         function(i) lapply(i, addHandlerChanged, 
@@ -462,7 +492,7 @@ drawMain <- function(env) {
                                           handler=filterSpectra)
   env$filterXICHandlerIDs <- lapply(env$filterInfoXIC, 
                                     function(i) lapply(i, addHandlerChanged, 
-                                                       handler=filterXIC))
+                                                       handler=filterSpectra))
 }
 
 getObjects <- function(classes="All classes") {
@@ -480,7 +510,13 @@ getObjects <- function(classes="All classes") {
 }
 
 openObject <- function(object) {
-  cat("\nYay, will open", object)
+  cat("\nOpening", object)
+  if(experimentLoaded) {      
+    visible(plotTop) <- TRUE
+    plotMsg()
+    visible(plotBottom) <- TRUE
+    plotMsg()
+  }
   makeMSnExpAccessors(get(object), env)
   updateExperiment(env)
 }
@@ -521,9 +557,12 @@ drawVarBrowser <- function(h, ...) {
   
   openObjectHandler <- function(h, ...) {
     if(length(svalue(tableVB))==0) 
-      gmessage(title=" ", message="Please select object!")
+      gmessage(title=" ", message="Please select an object!")
     else if(svalue(tableVB)=="No objects found") return(FALSE)
-    else openObject(svalue(tableVB))
+    else {
+      openObject(svalue(tableVB))
+      dispose(windowVB)
+    }
   }
   
   addHandlerDoubleclick(tableVB, handler=openObjectHandler)
@@ -610,6 +649,10 @@ drawOptions <- function (h, ...) {
                                width=50, handler=optsHandlerDefaults)
   
   addSpring(env$optsButtons)
+  
+  
+  lapply(opts$headings, setFont, settings$fontHead)
+  
   env$opts$ok <- gbutton("OK", container=optsButtons, width=settings$minButtonWidth, handler=function(h, ...) {
     if(any(c(settings$spectrumHeight!=svalue(opts$spectrumHeight), 
              settings$chromaHeight!=svalue(opts$chromaHeight), 

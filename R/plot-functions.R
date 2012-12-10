@@ -4,22 +4,22 @@ plotMsg <- function(message="Nothing to display", col="grey50") {
   text(.5, .5, labels=message, cex=.65, col=col)
 }
 
-plotXIC <- function(zoom=NULL)
+plotXIC <- function(zoom=NULL, noCache=FALSE)
   plotGeneric(zoom=zoom, cacheName="xic", 
               height=settings$chromaHeight, width=settings$width, 
-              fun=plotChromatogram, plotObject=plotBottom)
+              fun=plotChromatogram, plotObject=plotBottom, noCache=noCache)
 
-plotSpectrum <- function(zoom=NULL) 
-  plotGeneric(zoom=zoom)
+plotSpectrum <- function(zoom=NULL, noCache=FALSE) 
+  plotGeneric(zoom=zoom, noCache=noCache)
 
 plotGeneric <- function(zoom=NULL, cacheName="spectra", 
                         height=settings$spectrumHeight, width=settings$width, 
                         fun=plotSpectrumGraph, 
-                        plotObject=plotTop) {
+                        plotObject=plotTop, noCache) {
   
   if(device=="png") {
     
-    if(is.null(cache[[cacheName]][[index]]) | !is.null(zoom)) {
+    if(is.null(cache[[cacheName]][[index]]) | !is.null(zoom) | noCache) {
       if(is.null(zoom) & verbose) cat("\ncaching", index)
       
       filename <- tempfile(fileext=".png") 
@@ -29,7 +29,7 @@ plotGeneric <- function(zoom=NULL, cacheName="spectra",
         png(filename, width=settings$width, height=settings$spectrumHeight)  
       fun(zoom=zoom)    
       dev.off()    
-      if(is.null(zoom)) env$cache[[cacheName]][[index]] <- filename
+      if(is.null(zoom) & !noCache) env$cache[[cacheName]][[index]] <- filename
     } else filename <- cache[[cacheName]][[index]]
     
     visible(plotObject) <- TRUE
@@ -49,13 +49,15 @@ plotChromatogram <- function(zoom=NULL) {
   
   xic <- xic(n=1, settings$chromaMode)
   maxTotalIons <- max(xic[, 2])  
+  
+  xic <- xic[XICvalues, ]
   xic[, 2] <- xic[, 2]/maxTotalIons
   par(mar=c(3,3,0,1), mgp=c(2,0.45,0), tck=-.01, bty="n", lab=c(5, 3, 7), 
       adj=.5, las=1, cex=0.75)
   
   time <- proc.time()
   
-  plot(xic, type = "l", ylim=c(0, 1.075), xlab="Retention time", 
+  plot(xic, type = "l", ylim=c(0, 1.075), xlab="Retention time", xlim=xLimitsXIC, 
        ylab=ifelse(settings$chromaMode, "Base peak intensity", "Total ion count"))
   lines(x=rep(spRtime(index), 2), y=c(0, 1), col="red", lty=3)
   text(x=min(xic[, 1]), y=1.075, adj=0, 
@@ -151,7 +153,8 @@ plotSpectrumZoom <- function(limits=NULL) {
 plotChromaZoom <- function() {
   
   xic <- xic(n=1, settings$chromaMode)
-  maxTotalIons <- max(xic[, 2])
+  maxTotalIons <- max(xic[, 2]) 
+  xic <- xic[XICvalues, ]
   xic[, 2] <- xic[, 2]/maxTotalIons
   
   par(mar=c(3, 3, 0, 0), mgp=c(2,0.45,0), tck=-.01, bty="n", lab=c(5, 3, 7), 

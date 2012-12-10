@@ -11,7 +11,6 @@ source("R/gui-functions.R")
 source("R/filtering-functions.R")
 source("R/plot-functions.R")
 source("R/cache-functions.R")
-source("sandbox/middle-layer-msnExp.R")
 
 options(guiToolkit = "RGtk2")
 
