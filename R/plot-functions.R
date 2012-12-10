@@ -4,7 +4,7 @@ plotMsg <- function(message="Nothing to display", col="grey50") {
   text(.5, .5, labels=message, cex=.65, col=col)
 }
 
-plotXIC <- function(zoom=NULL) 
+plotXIC <- function(zoom=NULL)
   plotGeneric(zoom=zoom, cacheName="xic", 
               height=settings$chromaHeight, width=settings$width, 
               fun=plotChromatogram, plotObject=plotBottom)
@@ -26,7 +26,7 @@ plotGeneric <- function(zoom=NULL, cacheName="spectra",
       if(.Platform$OS.type=="windows") 
         png(filename, width=settings$width, height=settings$spectrumHeight, restoreConsole=FALSE)
       else 
-        png(filename, width=500, height=250)  
+        png(filename, width=settings$width, height=settings$spectrumHeight)  
       fun(zoom=zoom)    
       dev.off()    
       if(is.null(zoom)) env$cache[[cacheName]][[index]] <- filename
@@ -47,7 +47,7 @@ plotGeneric <- function(zoom=NULL, cacheName="spectra",
 
 plotChromatogram <- function(zoom=NULL) {
   
-  xic <- xic(n=1, FALSE)
+  xic <- xic(n=1, settings$chromaMode)
   maxTotalIons <- max(xic[, 2])  
   xic[, 2] <- xic[, 2]/maxTotalIons
   par(mar=c(3,3,0,1), mgp=c(2,0.45,0), tck=-.01, bty="n", lab=c(5, 3, 7), 
@@ -55,7 +55,8 @@ plotChromatogram <- function(zoom=NULL) {
   
   time <- proc.time()
   
-  plot(xic, type = "l", ylim=c(0, 1.075), xlab="Retention time", ylab="Total ion count")
+  plot(xic, type = "l", ylim=c(0, 1.075), xlab="Retention time", 
+       ylab=ifelse(settings$chromaMode, "Base peak intensity", "Total ion count"))
   lines(x=rep(spRtime(index), 2), y=c(0, 1), col="red", lty=3)
   text(x=min(xic[, 1]), y=1.075, adj=0, 
        labels=paste("Max total ions ", maxTotalIons))
@@ -78,18 +79,21 @@ plotSpectrumGraph <- function(zoom=NULL) {
   peaks <- peaks(index)
   basePeak <- max(peaks[, 2])
   peaks[, 2] <- peaks[, 2]/basePeak  
+  
+  # Make labels
   labels <- peaks[order(peaks[, 2], decreasing=TRUE), ]  
   xCoords <- labels[, 1]  
+  n <- length(xCoords)
   current <- 1  
   out <- 1
   
-  while(length(out) < settings$labelNumber) {
+  while(length(out) < settings$labelNumber & current < n) {
     s <- 1
-    while(min(abs(xCoords[out] - xCoords[current+s])) <= settings$labelThreshold) s <- s + 1
+    while(min(abs(xCoords[out] - xCoords[current+s])) <= settings$labelThreshold & current + s <= n) s <- s + 1
     out <- c(out, current <- current + s)
   }
   
-  labels <- labels[out, ]
+  labels <- labels[out[out<=n], ]
   
   time <- proc.time()
   
@@ -146,13 +150,14 @@ plotSpectrumZoom <- function(limits=NULL) {
 
 plotChromaZoom <- function() {
   
-  xic <- xic(n=1, FALSE)
+  xic <- xic(n=1, settings$chromaMode)
   maxTotalIons <- max(xic[, 2])
   xic[, 2] <- xic[, 2]/maxTotalIons
   
   par(mar=c(3, 3, 0, 0), mgp=c(2,0.45,0), tck=-.01, bty="n", lab=c(5, 3, 7), 
       adj=.5, las=1, cex=0.65)
   plot(xic, type = "l", xlim=env$XICZoom$x, ylim=env$XICZoom$y, 
-       xlab="Retention time", ylab="Total ion count")
+       xlab="Retention time", 
+       ylab=ifelse(settings$chromaMode, "Base peak intensity", "Total ion count"))
   
 }
