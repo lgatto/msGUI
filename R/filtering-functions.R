@@ -122,6 +122,7 @@ filterSpectra <- function(h, ...) {
       
       # also update graphs if index has changed
       if(prevIndex!=newSequence[counter]) updateSpectrum()
+      else updateSpectrumInfo()
     } 
   } else cat("\nNot a single spectrum survived filtering!")
 }
