@@ -7,7 +7,8 @@ plotMsg <- function(message="Nothing to display", col="grey50") {
 plotXIC <- function(zoom=NULL, noCache=FALSE)
   plotGeneric(zoom=zoom, cacheName="xic", 
               height=settings$chromaHeight, width=settings$width, 
-              fun=plotChromatogram, plotObject=plotBottom, noCache=noCache)
+              fun=plotChromatogram, plotObject=plotBottom, noCache=noCache, 
+              name="chromatogram")
 
 plotSpectrum <- function(zoom=NULL, noCache=FALSE) 
   plotGeneric(zoom=zoom, noCache=noCache)
@@ -15,12 +16,14 @@ plotSpectrum <- function(zoom=NULL, noCache=FALSE)
 plotGeneric <- function(zoom=NULL, cacheName="spectra", 
                         height=settings$spectrumHeight, width=settings$width, 
                         fun=plotSpectrumGraph, 
-                        plotObject=plotTop, noCache) {
+                        plotObject=plotTop, noCache, name="spectrum") {
   
   if(device=="png") {
     
     if(is.null(cache[[cacheName]][[index]]) | !is.null(zoom) | noCache) {
-      if(is.null(zoom) & verbose) cat("\ncaching", index)
+      if(is.null(zoom) & verbose) cat("caching", name, index, "\n")
+      
+      time <- proc.time()
       
       filename <- tempfile(fileext=".png") 
       if(.Platform$OS.type=="windows") 
@@ -30,11 +33,15 @@ plotGeneric <- function(zoom=NULL, cacheName="spectra",
       fun(zoom=zoom)    
       dev.off()    
       if(is.null(zoom) & !noCache) env$cache[[cacheName]][[index]] <- filename
+      
     } else filename <- cache[[cacheName]][[index]]
+    
+    time <- proc.time()
     
     visible(plotObject) <- TRUE
     lim <- par()$usr
     rasterImage(readPNG(filename), lim[1], lim[3], lim[2], lim[4], interpolate=FALSE)
+    if(verbose) cat(name, index, "loaded from cache in", (proc.time()-time)[3]*1000, "miliseconds\n")
     
   } else if(device=="cairo") {
     
@@ -46,6 +53,7 @@ plotGeneric <- function(zoom=NULL, cacheName="spectra",
 }
 
 plotChromatogram <- function(zoom=NULL) {
+  time <- proc.time()
   
   xic <- xic(n=1, settings$chromaMode)
   maxTotalIons <- max(xic[, 2])  
@@ -54,9 +62,6 @@ plotChromatogram <- function(zoom=NULL) {
   xic[, 2] <- xic[, 2]/maxTotalIons
   par(mar=c(3,3,0,1), mgp=c(2,0.45,0), tck=-.01, bty="n", lab=c(5, 3, 7), 
       adj=.5, las=1, cex=0.75)
-  
-  time <- proc.time()
-  
   plot(xic, type = "l", ylim=c(0, 1.075), xlab="Retention time", xlim=xLimitsXIC, 
        ylab=ifelse(settings$chromaMode, "Base peak intensity", "Total ion count"))
   lines(x=rep(spRtime(index), 2), y=c(0, 1), col="red", lty=3)
@@ -67,16 +72,13 @@ plotChromatogram <- function(zoom=NULL) {
     lines(zoom$x[c(1, 1, 2, 2, 1)], zoom$y[c(1, 2, 2, 1, 1)], 
           col="grey25", lty=3)
   }
-  
-  if(verbose) {
-    time <- proc.time() - time
-    cat("\nxic:", dim(xic)[1], "data points plotted in", 
-      time[3]*1000, "miliseconds")
-  }
+  if(verbose) 
+    cat("    ", dim(xic)[1], "data points plotted in", (proc.time() - time)[3]*1000, "miliseconds\n")
 }
 
 plotSpectrumGraph <- function(zoom=NULL) {
-
+  time <- proc.time()
+  
   MsLevel <- spMsLevel(index)
   peaks <- peaks(index)
   basePeak <- max(peaks[, 2])
@@ -96,9 +98,7 @@ plotSpectrumGraph <- function(zoom=NULL) {
   }
   
   labels <- labels[out[out<=n], ]
-  
-  time <- proc.time()
-  
+    
   par(mar=c(3,3,0,1), mgp=c(2,0.45,0), tck=-.01, bty="n", lab=c(5, 3, 7), 
       adj=.5, las=1, cex=0.75)
   plot(peaks, xlab="Mass to charge ratio (M/Z)", ylab="Intensity", 
@@ -117,15 +117,13 @@ plotSpectrumGraph <- function(zoom=NULL) {
           col="grey25", lty=3)
   }
   
-  time <- proc.time() - time
-  
-  if(verbose) cat("\nspectrum:", dim(peaks)[1], "data points plotted in", time[3]*1000, "miliseconds")
-  
+  if(verbose) 
+    cat("    ", dim(peaks)[1], "data points plotted in", (proc.time() - time)[3]*1000, "miliseconds\n")
 }
 
 plotSpectrumZoom <- function(limits=NULL) {
   
-  if(verbose) cat("\nlimits:", limits$x, limits$y)
+  if(verbose) cat("spectrum zoom limits:", limits$x, limits$y, "\n")
   
   peaks <- peaks(index)
   peaks[, 2] <- peaks[, 2]/max(peaks[, 2])  

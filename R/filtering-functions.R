@@ -170,7 +170,8 @@ filterSpectra <- function(h, ...) {
       }
       else updateSpectrumInfo()
     } 
-  } else cat("\nNot a single spectrum survived filtering!")
+  } else cat("Not a single spectrum survived filtering!
+             Please select different values or turn off some filters.")
   if(updateXIC) {
     plotXIC(XICZoom, noCache=TRUE) 
     if(!zoomWindowClosed) {

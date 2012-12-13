@@ -6,6 +6,7 @@ wrapper <- function(filename=NULL, device="png", verbose=FALSE) {
   
   zoomWindowClosed <- TRUE
   XICWindowClosed <- TRUE
+  optionsWindowClosed <- TRUE
   spectrumZoom <- NULL
   XICZoom <- NULL
   anyMS1spectra <- TRUE
@@ -88,6 +89,9 @@ updateExperiment <- function(env) {
     env$MS2indices <- frame[frame[, 1] < frame[, 2], ]
     
     env$xLimitsXIC <- range(xic()[, 1])
+  } else {
+    visible(plotBottom) <- TRUE
+    plotMsg("Experiment contains no MS1 spectra.")
   }
   
   resetCache()
@@ -140,10 +144,10 @@ updateSpectrum <- function(h=list(action=0), ...) {
 clickSwitch <- function(on) {
   if(on) {
     mapply(unblockHandler, list(plotTop, plotBottom), clickHandlerIDs) 
-    if(verbose) cat("\nPlots interactive")
+#     if(verbose) cat("Plot interactivity activated\n")
   } else {
     mapply(blockHandler, list(plotTop, plotBottom), clickHandlerIDs) 
-    if(verbose) cat("\nPlot interactivity disabled")   
+#     if(verbose) cat("Plot interactivity disabled\n")   
   }
   if(!env$anyMS1spectra) {
     blockHandler(plotBottom, clickHandlerIDs[[2]])
@@ -412,9 +416,9 @@ drawMain <- function(env) {
                                     xLimits[, spMsLevel(index)][2]),
                              y=fixY(h$y, 0, 1.05, settings$spectrumHeight))
                              
-    if(verbose) cat("\nx:", h$x, "y: ", h$y, 
-                    "  fixed: x:", spectrumZoom$x, 
-                    "y:", spectrumZoom$y) 
+    if(verbose) cat("coords: x", h$x, "y", h$y, 
+                    "  recalculated coords: x", spectrumZoom$x, 
+                    "y", spectrumZoom$y, "\n") 
     
     plotSpectrum(zoom=spectrumZoom)
     if(zoomWindowClosed) drawZoom()
@@ -423,7 +427,7 @@ drawMain <- function(env) {
   }   
   
   handlerClickZoom <- function(h,...) {
-    if(verbose) cat("\nx:", h$x, "y: ", h$y)
+    if(verbose) cat("coords: x", h$x, "y", h$y, "\n")
     env$spectrumZoom <- h
     plotSpectrum(zoom=h)
     if(zoomWindowClosed) drawZoom()
@@ -432,7 +436,7 @@ drawMain <- function(env) {
   } 
   
   handlerClickZoomXIC <- function(h, ...) {
-    if(verbose) cat("\nx:", h$x, "y: ", h$y)
+    if(verbose) cat("coords: x", h$x, "y", h$y, "\n")
     env$XICZoom <- h    
     plotXIC(zoom=h)    
     if(XICWindowClosed) drawZoomXIC(env)
@@ -448,9 +452,8 @@ drawMain <- function(env) {
     env$XICZoom$x <- fixX(h$x, xicRangeX[1], xicRangeX[2])
     env$XICZoom$y <- fixY(h$y, 0, 1.05, settings$chromaHeight) 
     
-    if(verbose) cat("\nXIC clicked on:", c(h$x, h$y), " fixed x:", XICZoom$x) 
-    
-#     if(h$x[1]==h$x[2] & h$y[1]==h$y[2]) {
+#     if(verbose) cat("\nXIC clicked on:", c(h$x, h$y), " fixed x:", XICZoom$x) 
+    if(verbose) cat("coords: x", h$x, "y", h$y, "recalculated coords", XICZoom$x, "\n")
     
     if(same) {
       prevCounter <- counter    
@@ -459,9 +462,9 @@ drawMain <- function(env) {
       # update graphs if index has changed
       if(prevCounter!=counter) updateSpectrum() 
       
-      if(verbose) cat("displaying spectrum", currSequence[counter])
+#       if(verbose) cat("displaying spectrum", currSequence[counter], "\n")
     } else {
-      if(verbose) cat("displaying xic zoom")
+#       if(verbose) cat("displaying xic zoom")
       if(XICWindowClosed) drawZoomXIC()
       visible(plotXICw) <- TRUE
       plotChromaZoom()
@@ -510,7 +513,7 @@ getObjects <- function(classes="All classes") {
 }
 
 openObject <- function(object) {
-  cat("\nOpening", object)
+  if(verbose) cat("pening...", object)
   if(experimentLoaded) {      
     visible(plotTop) <- TRUE
     plotMsg()
@@ -518,6 +521,7 @@ openObject <- function(object) {
     plotMsg()
   }
   makeMSnExpAccessors(get(object), env)
+  if(verbose) cat("     done!\n")
   updateExperiment(env)
 }
 
@@ -589,6 +593,10 @@ optsHandlerDefaults <- function(h, ...) {
 
 drawOptions <- function (h, ...) {
   
+  if(!optionsWindowClosed) return(NULL)
+  
+  optionsWindowClosed <- FALSE
+  
   env$optsWindow <- gwindow("Options", visible=FALSE, height=50, width=50, parent=msGUIWindow)
   env$optsGroup <- ggroup(container=optsWindow, horizontal=FALSE)
   env$l <- glayout(container=optsGroup, homogeneous=TRUE, spacing=30)
@@ -636,7 +644,7 @@ drawOptions <- function (h, ...) {
   i <- 5
   
   env$l2[i, 1:3] <- (env$opts$separator$t2 <- glabel("", container=l2))
-  env$l2[i + 1, 1:3] <- (env$opts$headings$t3 <- glabel("Chromatogram mode", 
+  env$l2[i + 1, 1:3] <- (env$opts$headings$t4 <- glabel("Chromatogram mode", 
                                                         container=l2))
   env$l2[i + 2, 1:3] <- (env$opts$chromaMode <- gradio(c("Total ion count", 
                                                                "Base peak intensity"), 
@@ -662,7 +670,7 @@ drawOptions <- function (h, ...) {
              settings$MS2PlotType!=ifelse(svalue(opts$MS2PlotType)=="", "h", "l"), 
              settings$chromaMode!=(svalue(opts$chromaMode)=="Base peak intensity")
              ))) {
-      cat("Applying changes\n")
+      if(verbose) cat("Applying changes... ")
       settings$spectrumHeight <- svalue(opts$spectrumHeight)
       settings$chromaHeight <- svalue(opts$chromaHeight)
       settings$width <- svalue(opts$width)
@@ -683,6 +691,7 @@ drawOptions <- function (h, ...) {
       }        
       resetCache()
       updateSpectrum()
+      if(verbose) cat("     done!\n")
     }
     dispose(env$optsWindow)
   })
