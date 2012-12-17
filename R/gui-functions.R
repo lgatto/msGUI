@@ -12,6 +12,7 @@ wrapper <- function(filename=NULL, device="png", verbose=FALSE) {
   anyMS1spectra <- TRUE
   XICvalues <- TRUE
   experimentLoaded <- FALSE
+  closingMsGUI <- FALSE
   
   environment(openFileHandler) <- env  
   environment(drawMain) <- env  
@@ -129,11 +130,17 @@ updateSpectrum <- function(h=list(action=0), ...) {
   clickSwitch(FALSE)  
   
   plotSpectrum(spectrumZoom)
+  
+  if(!zoomWindowClosed) {
+    visible(env$plotZoom) <- TRUE      
+    plotSpectrumZoom(spectrumZoom)
+  }
+  
   if(env$anyMS1spectra) {
     plotXIC(XICZoom) 
-    if(!zoomWindowClosed) {
-      visible(env$plotZoom) <- TRUE      
-      plotSpectrumZoom(spectrumZoom)
+    if(!XICWindowClosed) {
+      visible(env$plotXICw) <- TRUE      
+      plotChromaZoom()
     }
   }
   
@@ -205,6 +212,7 @@ drawMain <- function(env) {
   
   # Window and structure
   env$msGUIWindow <- gwindow("msGUI", visible=FALSE, handler=function(h, ...) {
+    env$closingMsGUI <- TRUE
     if(!zoomWindowClosed) dispose(zoomWindow)
     if(!XICWindowClosed) dispose(XICWindow)
     # Clean-up cache
@@ -374,7 +382,7 @@ drawMain <- function(env) {
                               handler=function(h, ...) {
                                 env$zoomWindowClosed <- TRUE
                                 env$spectrumZoom <- NULL
-                                plotSpectrum()
+                                if(!closingMsGUI) plotSpectrum()
                               })
     env$groupZoomMain <- ggroup(container=zoomWindow, horizontal=FALSE, expand=TRUE)
     env$plotZoom <- ggraphics(width=250, height=250, container=groupZoomMain, dpi=96, ps=12)
@@ -388,7 +396,7 @@ drawMain <- function(env) {
                              handler=function(h, ...) {
                                env$XICWindowClosed <- TRUE
                                env$XICZoom <- NULL
-                               plotXIC()
+                               if(!closingMsGUI) plotXIC()
                              })
     env$groupXICMain <- ggroup(container=XICWindow, horizontal=FALSE, expand=TRUE)
     env$plotXICw <- ggraphics(width=250, height=250, container=groupXICMain, dpi=96, ps=12)
@@ -446,25 +454,22 @@ drawMain <- function(env) {
   
   handlerClickXIC <- function(h,...) {
     clickSwitch(FALSE)
-    x <- xic(n=1, FALSE)
-    xicRangeX <- range(x[, 1])
-    same <- same(h)
-    env$XICZoom$x <- fixX(h$x, xicRangeX[1], xicRangeX[2])
-    env$XICZoom$y <- fixY(h$y, 0, 1.05, settings$chromaHeight) 
+    xicRangeX <- range(xic(n=1, FALSE)[, 1])
+    xCoord <- fixX(h$x, xicRangeX[1], xicRangeX[2])[2]
     
-#     if(verbose) cat("\nXIC clicked on:", c(h$x, h$y), " fixed x:", XICZoom$x) 
-    if(verbose) cat("coords: x", h$x, "y", h$y, "recalculated coords", XICZoom$x, "\n")
+    if(verbose) cat("coords: x", h$x, "y", h$y, "recalculated coords", xCoord, "\n")
     
-    if(same) {
+    if(same(h)) {
       prevCounter <- counter    
-      env$counter <- which.min(abs(spRtime(currSequence)-XICZoom$x[1]))
+      env$counter <- which.min(abs(spRtime(currSequence)-xCoord))
       
       # update graphs if index has changed
       if(prevCounter!=counter) updateSpectrum() 
       
-#       if(verbose) cat("displaying spectrum", currSequence[counter], "\n")
     } else {
-#       if(verbose) cat("displaying xic zoom")
+      env$XICZoom$x <- fixX(h$x, xicRangeX[1], xicRangeX[2])
+      env$XICZoom$y <- fixY(h$y, 0, 1.05, settings$chromaHeight) 
+      
       if(XICWindowClosed) drawZoomXIC()
       visible(plotXICw) <- TRUE
       plotChromaZoom()
