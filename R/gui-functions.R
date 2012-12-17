@@ -487,14 +487,6 @@ drawMain <- function(env) {
   env$filterSpectraHandlerIDs <- lapply(env$filterInfo, 
                                         function(i) lapply(i, addHandlerChanged, 
                                                            handler=filterSpectra))
-  #   env$filterSpectraHandlerIDs <- c(filterSpectraHandlerIDs, 
-  #                                    lapply(env$filterInfo, 
-  #                                         function(i) lapply(i, addHandlerBlur, 
-  #                                                            handler=filterSpectra)))
-  #   # error:
-  #   (rsession.exe:7992): Gtk-WARNING **: GtkEntry - did not receive focus-out-event. If you
-  #   connect a handler to this signal, it must return
-  #   FALSE so the entry gets the event as well
   
   env$filterSpectraMSHandlerIDs <- lapply(env$filterInfoMS, addHandlerChanged, 
                                           handler=filterSpectra)
@@ -600,7 +592,7 @@ drawOptions <- function (h, ...) {
   
   if(!optionsWindowClosed) return(NULL)
   
-  optionsWindowClosed <- FALSE
+  env$optionsWindowClosed <- FALSE
   
   env$optsWindow <- gwindow("Options", visible=FALSE, height=50, width=50, parent=msGUIWindow)
   env$optsGroup <- ggroup(container=optsWindow, horizontal=FALSE)
