@@ -102,6 +102,29 @@ filterSpectra <- function(h, ...) {
   if(svalue(filterInfoXIC$XIC$active)!=filterValuesXIC$XIC$active & anyMS1spectra)
     updateXIC <- TRUE
   
+  # XIC filtering
+  if(env$anyMS1spectra) {
+    
+    if(svalue(filterInfoXIC$XIC$active)) {
+      
+      from <- svalue(filterInfoXIC$XIC$from)
+      to <- svalue(filterInfoXIC$XIC$to)
+      # This looks at each group of MS2 spectra and returns TRUE if any spectrum 
+      # in that group survived filtering
+      filtered <- apply(MS2indices, 1, function(x) any(btwn(filterData[[3]][x[1]:x[2]], 
+                                                            from, to))) 
+      # Now get the indices of MS1 spectra that are just before these MS2 spectra
+      MS1indices <- MS2indices[filtered, 1] - 1
+      # Recalculate these indices for data.frame with MS1 spectra only 
+      
+      MS1indicesL <- rep(FALSE, nSpectra)
+      MS1indicesL[MS1indices] <- TRUE
+      
+      env$XICvalues <- MS1indicesL[spMsLevel()==1]
+      updateXIC <- TRUE
+    } else env$XICvalues <- TRUE
+  }
+  
   # Make sure at least one MS level is selected
   if(!svalue(filterInfoMS$ms1) & !filterValuesMS$ms2) svalue(filterInfoMS$ms2) <- TRUE
   if(!svalue(filterInfoMS$ms2) & !filterValuesMS$ms1) svalue(filterInfoMS$ms1) <- TRUE 
@@ -134,29 +157,6 @@ filterSpectra <- function(h, ...) {
   saveFilterValues()
   
   blockFilters(FALSE)
-  
-  # XIC filtering
-  if(env$anyMS1spectra) {
-    
-    if(svalue(filterInfoXIC$XIC$active)) {
-      
-      from <- svalue(filterInfoXIC$XIC$from)
-      to <- svalue(filterInfoXIC$XIC$to)
-      # This looks at each group of MS2 spectra and returns TRUE if any spectrum 
-      # in that group survived filtering
-      filtered <- apply(MS2indices, 1, function(x) any(btwn(filterData[[3]][x[1]:x[2]], 
-                                                            from, to))) 
-      # Now get the indices of MS1 spectra that are just before these MS2 spectra
-      MS1indices <- MS2indices[filtered, 1] - 1
-      # Recalculate these indices for data.frame with MS1 spectra only 
-      
-      MS1indicesL <- rep(FALSE, nSpectra)
-      MS1indicesL[MS1indices] <- TRUE
-      
-      env$XICvalues <- MS1indicesL[spMsLevel()==1]
-      updateXIC <- TRUE
-    } else env$XICvalues <- TRUE
-  }
   
   # Update sequence of spectra and update chart
   if(any(keep)) {
