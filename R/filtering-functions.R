@@ -116,10 +116,17 @@ filterSpectra <- function(h, ...) {
   keep <- mapply(function(data, obj) {
     if(svalue(obj$active)) {
       btwn(data, svalue(obj$from), svalue(obj$to))
-    } else rep(TRUE, length(spRtime()))
+    } else rep(TRUE, nSpectra)
   }, filterData, filterInfo)
   
-  keep <- apply(keep, 1, sum) == length(filterInfo)
+  colnames(keep) <- names(filterInfo)
+  
+  MS1filters <- c("rt", "index")
+  
+  keepMS1 <- apply(keep[, MS1filters], 1, sum) == length(MS1filters)
+  keepMS2 <- apply(keep, 1, sum) == length(filterInfo)
+  
+  keep <- (keepMS1 | spMsLevel() != 1) & (keepMS2 | spMsLevel() != 2)
   
   if(!svalue(filterInfoMS$ms1)) keep <- keep & spMsLevel() != 1
   if(!svalue(filterInfoMS$ms2)) keep <- keep & spMsLevel() != 2
@@ -132,7 +139,7 @@ filterSpectra <- function(h, ...) {
   if(env$anyMS1spectra) {
     
     if(svalue(filterInfoXIC$XIC$active)) {
-#       browser()
+      
       from <- svalue(filterInfoXIC$XIC$from)
       to <- svalue(filterInfoXIC$XIC$to)
       # This looks at each group of MS2 spectra and returns TRUE if any spectrum 
