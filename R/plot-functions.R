@@ -65,7 +65,7 @@ plotChromatogram <- function(zoom=NULL) {
   plot(xic, type = "l", ylim=c(0, 1.075), xlab="Retention time", xlim=xLimitsXIC, 
        ylab=ifelse(settings$chromaMode, "Base peak intensity", "Total ion count"))
   lines(x=rep(spRtime(index), 2), y=c(0, 1), col="red", lty=3)
-  text(x=min(xic[, 1]), y=1.075, adj=0, 
+  text(x=xLimitsXIC[1], y=1.075, adj=0, 
        labels=paste("Max total ions ", maxTotalIons))
   
   if(!is.null(zoom)) {
