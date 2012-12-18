@@ -594,7 +594,9 @@ drawOptions <- function (h, ...) {
   
   env$optionsWindowClosed <- FALSE
   
-  env$optsWindow <- gwindow("Options", visible=FALSE, height=50, width=50, parent=msGUIWindow)
+  env$optsWindow <- gwindow("Options", visible=FALSE, height=50, width=50, 
+                            parent=msGUIWindow, handler=function(h, ...) 
+                              env$optionsWindowClosed <- TRUE)
   env$optsGroup <- ggroup(container=optsWindow, horizontal=FALSE)
   env$l <- glayout(container=optsGroup, homogeneous=TRUE, spacing=30)
   env$l[1, 1] <- (env$l1 <- glayout(container=l, spacing=2))
