@@ -309,7 +309,7 @@ drawMain <- function(env) {
   i <- 18
   
   le[i, 1] <- (env$headings$t3 <- glabel("Filter", container=le))
-  le[i, 2, anchor=c(-1,-1)] <- (env$deaemp$t5 <- glabel("from", container=le))
+  le[i, 2, anchor=c(-1,-1)] <- (env$deemp$t5 <- glabel("from", container=le))
   le[i, 3, anchor=c(-1,-1)] <- (env$deemp$t6 <- glabel("to", container=le))
   
   le[i + 1, 1] <- (env$filterInfo$rt$active <- gcheckbox("Retention time", container=le))
@@ -370,7 +370,7 @@ drawMain <- function(env) {
   lapply(expInfo, setFont, settings$fontReg)
   lapply(specInfo, setFont, settings$fontReg)
   lapply(separator, setFont, list(size=4))
-  lapply(filterInfoMS, setFont, settings$fontReg)
+  lapply(specPrecInfo, setFont, settings$fontReg)
   lapply(filterInfo, function(x) lapply(x, setFont, settings$fontReg)) 
   lapply(filterInfoXIC, function(x) lapply(x, setFont, settings$fontReg)) 
   
@@ -585,17 +585,17 @@ drawOptions <- function (h, ...) {
   env$l[1, 2] <- (env$l2 <- glayout(container=l, spacing=2))
   
   env$l1[1, 1:3] <- (env$opts$headings$t1 <- glabel("Graph sizes", container=l1))
-  env$l1[2, 2, anchor=c(0, 0)] <- (env$opts$text$t2 <- glabel("height", container=l1))  
-  env$l1[2, 3, anchor=c(0, 0)] <- (env$opts$text$t1 <- glabel("width", container=l1))
+  env$l1[2, 2, anchor=c(0, 0)] <- (env$opts$text$t1 <- glabel("height", container=l1))  
+  env$l1[2, 3, anchor=c(0, 0)] <- (env$opts$text$t2 <- glabel("width", container=l1))
   env$l1[3, 2] <- (env$opts$spectrumHeight <- gspinbutton(from=250, to=500, by=10, 
                                                           value=settings$spectrumHeight, 
                                                           digits=0, container=l1))
   env$l1[3, 3] <- (env$opts$width <- gspinbutton(from=500, to=800, by=10, 
                                                  value=settings$width, digits=0, 
                                                  container=l1))
-  env$l1[3, 1, anchor=c(-1, 0)] <- (env$opts$textBf$t1 <- glabel("Spectrum graph", 
+  env$l1[3, 1, anchor=c(-1, 0)] <- (env$opts$text$t1 <- glabel("Spectrum graph", 
                                                                  container=l1))
-  env$l1[4, 1, anchor=c(-1, 0)] <- (env$opts$textBf$t2 <- glabel("Chromatogram", 
+  env$l1[4, 1, anchor=c(-1, 0)] <- (env$opts$text$t2 <- glabel("Chromatogram", 
                                                                  container=l1))
   env$l1[4, 2] <- (env$opts$chromaHeight <- gspinbutton(from=250, to=500, by=10, 
                                                         value=settings$chromaHeight, 
@@ -604,7 +604,7 @@ drawOptions <- function (h, ...) {
   
   env$l1[i, 1:3] <- (env$opts$separator$t1 <- glabel("", container=l1))
   env$l1[i + 1, 1:3] <- (env$opts$headings$t3 <- glabel("Labels", container=l1))
-  env$l1[i + 2, 1:2] <- (env$opts$text$t1 <- glabel("Number of peaks to label", 
+  env$l1[i + 2, 1:2] <- (env$opts$text$t3 <- glabel("Number of peaks to label", 
                                                     container=l1))
   env$l1[i + 2, 3] <- (env$opts$labelNumber <- gedit(settings$labelNumber, 
                                                      coerce.with=as.numeric, 
@@ -638,9 +638,6 @@ drawOptions <- function (h, ...) {
                                width=50, handler=optsHandlerDefaults)
   
   addSpring(env$optsButtons)
-  
-  
-  lapply(opts$headings, setFont, settings$fontHead)
   
   env$opts$ok <- gbutton("OK", container=optsButtons, width=settings$minButtonWidth, handler=function(h, ...) {
     if(any(c(settings$spectrumHeight!=svalue(opts$spectrumHeight), 
@@ -680,7 +677,7 @@ drawOptions <- function (h, ...) {
                              handler=function(h, ...) dispose(env$optsWindow))
   addSpace(env$optsButtons, 18)
   
-  lapply(opts$text, setFont, settings$fontReg)
+  lapply(opts$headings, setFont, settings$fontHead)
   
   visible(env$optsWindow) <- TRUE
 }

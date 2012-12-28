@@ -18,8 +18,8 @@ defaultSettings <- function() {
   chromaMode <- FALSE # i.e. total ion count is the default
   
   # Fonts
-  fontHead <- list(weight="bold", family="sans", size=12, color="grey40")
-  fontReg <- list(weight="light", family="sans", size=8, color="grey10")
+  fontHead <- list(weight="bold", family="sans", size=12, color="grey25")
+  fontReg <- list(weight="light", family="sans", size=8, color="grey05")
   fontRegGrey <- list(weight="light", family="sans", size=8, color="grey50")
   fontDeemp <- list(weight="light", family="sans", size=8, color="grey50")
   
