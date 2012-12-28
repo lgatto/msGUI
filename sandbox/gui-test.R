@@ -11,9 +11,18 @@ source("R/gui-functions.R")
 source("R/filtering-functions.R")
 source("R/plot-functions.R")
 source("R/cache-functions.R")
+source("R/msGUI.R")
 
-options(guiToolkit = "RGtk2")
+filename <- "/media/Data/GitHub/msGUI/sandbox/TMT_Erwinia_1uLSike_Top10HCD_isol2_45stepped_60min_01.mzXML"
 
-filename <- "e:/GitHub/msGUI/sandbox/TMT_Erwinia_1uLSike_Top10HCD_isol2_45stepped_60min_01.mzXML"
-wrapper(filename, device="png")
-# wrapper(filename, device="cairo")
+# generic
+msGUI()
+
+# MSnExp object 
+msGUI(MSnbase::itraqdata)
+
+# file
+msGUI(filename)
+
+# using options
+msGUI(MSnbase::itraqdata, device="cairo", verbose=TRUE)

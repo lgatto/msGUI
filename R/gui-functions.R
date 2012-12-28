@@ -1,8 +1,10 @@
-wrapper <- function(filename=NULL, device="png", verbose=FALSE) {  
+wrapper <- function(filename=NULL, object=NULL, device="png", verbose=FALSE) {  
   
   env <- environment()
   
   settings <- defaultSettings()
+  
+  options(guiToolkit = "RGtk2")
   
   zoomWindowClosed <- TRUE
   XICWindowClosed <- TRUE
@@ -53,6 +55,12 @@ wrapper <- function(filename=NULL, device="png", verbose=FALSE) {
     updateExperiment(env)
     experimentLoaded <- TRUE
   }   
+  
+  if(!is.null(object)) {
+    makeMSnExpAccessors(object, env)
+    updateExperiment(env)
+    experimentLoaded <- TRUE
+  }
 }
 
 updateExperimentInfo <- function() {

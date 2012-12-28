@@ -2,19 +2,15 @@ setGeneric("msGUI", function(object,...) standardGeneric("msGUI"))
 
 setMethod("msGUI", "missing",
           function(object, ...) {
-            ## opens GUI
-            TRUE
+            wrapper(...)
           })
-
 
 setMethod("msGUI", "character",
           function(object, ...) {
-            ## use mzR::openMSfile
-            TRUE
+            wrapper(filename=object, ...)
           })
 
 setMethod("msGUI", "MSnExp",
           function(object, ...) {
-            ## use MSnbase infrastructure
-            TRUE
+            wrapper(object=object, ...)
           })
