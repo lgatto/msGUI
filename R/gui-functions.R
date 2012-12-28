@@ -497,16 +497,17 @@ drawMain <- function(env) {
 
 getObjects <- function(classes="All classes") {
   objects <- ls(envir=globalenv())
-  x <- cbind(Object=objects, 
-             Class=sapply(objects, function(x) class(get(x))), 
-             Comment=sapply(objects, function(x) ifelse(class(get(x))=="MSnExp", "Some attribute", "")))
-  rows <- x[, 2]!="function"
-  if(classes!="All classes") rows <- x[, 2]==classes
+  x <- data.frame(Object=objects, 
+                  Class=sapply(objects, function(x) class(get(x))), 
+                  stringsAsFactors=FALSE)
+  if(classes=="All classes") 
+    rows <- x$Class!="function" else rows <- x$Class==classes
   if(sum(rows)==0) return(data.frame(Object="No objects found", 
-                                     Class="", 
                                      Comment="", 
                                      stringsAsFactors=FALSE))
-  x[rows, , drop=FALSE]
+  x <- x[rows, -2, drop=FALSE]
+  x$Comment <- paste(sapply(x$Object, function(i) length(get(i))), "unique MZs")
+  return(x)
 }
 
 openObject <- function(object) {
@@ -528,31 +529,12 @@ drawVarBrowser <- function(h, ...) {
   panelVB <- ggroup(container=windowVB, horizontal=FALSE, expand=TRUE)
   panelVBtop <- ggroup(container=panelVB)
   panelVBmiddle <- ggroup(container=panelVB, expand=TRUE)
-  panelVBbottom <- ggroup(container=panelVB) #, horizontal=TRUE
+  panelVBbottom <- ggroup(container=panelVB) 
   text <- glabel("Filter objects by class: ", container=panelVBtop)
   filterVB <- gcombobox(container=panelVBtop, 
                         handler=function(h, ...) 
                           tableVB[] <- getObjects(svalue(filterVB)), 
-                        items=c("MSnExp", "All classes"))
-  #   
-  #   text <- glabel("Filter objects by class: ", container=panelVBtop)
-  #   filterVB <- gcombobox(container=panelVBtop, 
-  #                         handler=function(h, ...) 
-  #                           tableVB[] <- getObjects(svalue(filterVB)), 
-  #                         items=c("MSnExp", "All classes"))
-  #   layoutVB <- glayout(spacing=2, container=panelVBtop)
-  #   layoutVB[1, 1] <- glabel("Filter objects by class: ", container=layoutVB)
-  #   layoutVB[1, 2] <- (filterVB <- gcombobox(container=layoutVB, 
-  #                         handler=function(h, ...) 
-  #                           tableVB[] <- getObjects(svalue(filterVB)), 
-  #                         items=c("MSnExp", "All classes")))
-  #   
-  #   layoutVB[2, 1] <- glabel("Filter objects by class: ", container=layoutVB)
-  #   layoutVB[2, 2] <- (filter2VB <- gcombobox(container=layoutVB, 
-  #                         handler=function(h, ...) 
-  #                           tableVB[] <- getObjects(svalue(filter2VB)), 
-  #                         items=c("MSnExp", "All classes")))
-  
+                        items=c("MSnExp"))
   
   tableVB <- gtable(container=panelVBmiddle, items=getObjects(svalue(filterVB)), expand=TRUE)
   
