@@ -67,6 +67,7 @@ plotChromatogram <- function(zoom=NULL) {
   lines(x=rep(spRtime(index), 2), y=c(0, 1), col="red", lty=3)
   text(x=xLimitsXIC[1], y=1.075, adj=0, 
        labels=paste("Max total ions ", maxTotalIons))
+  abline(h=0, col="grey50")
   
   if(!is.null(zoom)) {
     lines(zoom$x[c(1, 1, 2, 2, 1)], zoom$y[c(1, 2, 2, 1, 1)], 
@@ -145,6 +146,7 @@ plotSpectrumZoom <- function(limits=NULL) {
          col="grey50", adj=c(0, 0))    
   }
   par(adj=1)
+  abline(h=0, col="grey50")
   text(limits$x[2], limits$y[2], labels=paste("Acquisition number:", spIndex(index)))
 }
 
@@ -157,8 +159,8 @@ plotChromaZoom <- function() {
   
   par(mar=c(3, 3, 0, 0), mgp=c(2,0.45,0), tck=-.01, bty="n", lab=c(5, 3, 7), 
       adj=.5, las=1, cex=0.65)
-  plot(xic, type = "l", xlim=env$XICZoom$x, ylim=env$XICZoom$y, 
+  plot(xic, type = "h", xlim=env$XICZoom$x, ylim=env$XICZoom$y, 
        xlab="Retention time", 
        ylab=ifelse(settings$chromaMode, "Base peak intensity", "Total ion count"))
-  
+  abline(h=0, col="grey50")
 }
