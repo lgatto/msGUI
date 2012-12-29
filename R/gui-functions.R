@@ -63,10 +63,24 @@ wrapper <- function(filename=NULL, object=NULL, device="png", verbose=FALSE) {
   }
 }
 
+formatRt2 <- function(x) {
+  switch(settings$RtFormat, 
+         "minutes:seconds" = formatRt(x), 
+         "minutes" = round(x/60, digits = settings$digits), 
+         "seconds" = x)
+}
+
+deformatRt <- function(x) {
+  switch(settings$RtFormat, 
+         "minutes:seconds" = vapply(strsplit(x, ":"), function(i) as.numeric(i[[1]])*60 + as.numeric(i[[2]]), 1), 
+         "minutes" = x*60, 
+         "seconds" = x)
+}
+
 updateExperimentInfo <- function() {
   precMzRange <- round(expPrecMzRange(), digits=settings$digits)
-  svalue(expInfo$rtfrom) <- formatRt(expRtRange()[1])
-  svalue(expInfo$rtto) <- formatRt(expRtRange()[2])
+  svalue(expInfo$rtfrom) <- formatRt2(expRtRange()[1])
+  svalue(expInfo$rtto) <- formatRt2(expRtRange()[2])
   svalue(expInfo$pmzfrom) <- precMzRange[1]
   svalue(expInfo$pmzto) <- precMzRange[2]
   svalue(expInfo$ms1) <- nMS1()
@@ -84,6 +98,11 @@ updateExperiment <- function(env) {
   env$filterData <- list(spRtime(), spIndex(), spPrecMz(), 
                          spPrecInt(), spPrecCharge(), spPrecMz()*spPrecCharge())
   # filterData stores data for filters for fast access. 
+  
+  env$filterTransform <- list(formatRt2, identity, identity, identity, identity, 
+                              identity)
+  env$filterDetransform <- list(deformatRt, as.numeric, as.numeric, as.numeric, 
+                                as.numeric, as.numeric)
   
   env$nSpectra <- length(filterData[[1]])
   env$xLimits <- sapply(1:2, function(i) if(any(spMsLevel()==i)) 

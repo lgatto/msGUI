@@ -16,23 +16,23 @@ blockFilters <- function(block=TRUE) {
   }
 }
 
-updateRanges <- function(obj, values) {
+updateRanges <- function(obj, values, transform) {
   svalue(obj$active) <- FALSE
-  svalue(obj$from) <- min(values)
-  svalue(obj$to) <- max(values)
+  svalue(obj$from) <- transform(round(min(values), digits=settings$digits))
+  svalue(obj$to) <- transform(round(max(values), digits=settings$digits))
 }
   
 filterReset <- function(env) {  
   blockFilters()
   
   # Filters for spectra
-  mapply(updateRanges, filterInfo, filterData)
+  mapply(updateRanges, filterInfo, filterData, filterTransform)
   
   # MS levels checkboxes
   lapply(filterInfoMS, function(i) svalue(i) <- TRUE)
   
   # Filter for XIC
-  mapply(updateRanges, filterInfoXIC, list(spPrecMz()))
+  mapply(updateRanges, filterInfoXIC, list(spPrecMz()), list(identity))
     
   saveFilterValues()  
   blockFilters(FALSE)
@@ -52,44 +52,43 @@ filterSwitch <- function(on) {
   }
 }
 
-btwn <- function(x, from, to) {
-  stopifnot(all(is.numeric(x), is.character(from), is.character(to)))
-  x >= as.numeric(from) & x <= as.numeric(to)
-}
+btwn <- function(x, from, to) x >= from & x <= to
 
+validityCheck <- function(object, data, pastValues, detransform, transform) {
 
-validityCheck <- function(object, data, pastValues) {
+  range <- range(data)
   
-  from <- object$from
-  to <- object$to
+  numFrom <- detransform(svalue(object$from))
+  numTo <- detransform(svalue(object$to))
   
-  numFrom <- suppressMessages(as.numeric(svalue(from)))
-  numTo <- suppressMessages(as.numeric(svalue(to)))
-  
-  prevFrom <- as.numeric(pastValues$from)
-  prevTo <- as.numeric(pastValues$to)
+  prevFrom <- detransform(pastValues$from)
+  prevTo <- detransform(pastValues$to)
     
-  prevValid <- prevFrom >= min(data) & prevFrom < prevTo & prevTo > min(data) & prevTo <= max(data)
-  if(is.na(numFrom)) svalue(from) <- min(data) else {
-    if(numFrom < min(data)) svalue(from) <- min(data)
-    if(numFrom > max(data)) svalue(from) <- ifelse(prevValid, prevFrom, min(data))
+  prevValid <- prevFrom >= range[1] & prevFrom < prevTo & prevTo > range[1] & prevTo <= range[2]
+  if(is.na(numFrom)) numFrom <- range[1] else {
+    if(numFrom < range[1]) numFrom <- range[1]
+    if(numFrom > range[2]) numFrom <- ifelse(prevValid, prevFrom, range[1])
   }
-  if(is.na(numTo)) svalue(to) <- ifelse(prevValid, prevTo, max(data)) else {
-    if(numTo < min(data)) svalue(to) <- ifelse(prevValid, prevTo, max(data))
-    if(numTo > max(data)) svalue(to) <- max(data)
+  if(is.na(numTo)) numTo <- ifelse(prevValid, prevTo, range[2]) else {
+    if(numTo < range[1]) numTo <- ifelse(prevValid, prevTo, range[2])
+    if(numTo > range[2]) numTo <- range[2]
   }
-  if(as.numeric(svalue(from)) > as.numeric(svalue(to))) {
-    if(numFrom!=prevFrom) svalue(from) <- prevFrom
-    else svalue(to) <- prevTo
+  if(numFrom > numTo) {
+    if(numFrom!=prevFrom) numFrom <- prevFrom
+    else numTo <- prevTo
   }
+  svalue(object$from) <- transform(numFrom)
+  svalue(object$to) <- transform(numTo)
 }
 
 filterSpectra <- function(h, ...) {
   blockFilters()
   
   # Check entered values, fix if needed
-  mapply(validityCheck, filterInfo, filterData, filterValues)
-  mapply(validityCheck, filterInfoXIC, filterData[3], filterValuesXIC)
+  mapply(validityCheck, filterInfo, filterData, filterValues, 
+         filterDetransform, filterTransform)
+  mapply(validityCheck, filterInfoXIC, filterData[3], filterValuesXIC, 
+         list(as.numeric), list(identity))
   
   # If XIC filter active, its values are forced upon the Precursor MZ filter
   if(env$anyMS1spectra & svalue(filterInfoXIC$XIC$active)) {
@@ -107,8 +106,8 @@ filterSpectra <- function(h, ...) {
     
     if(svalue(filterInfoXIC$XIC$active)) {
       
-      from <- svalue(filterInfoXIC$XIC$from)
-      to <- svalue(filterInfoXIC$XIC$to)
+      from <- as.numeric(svalue(filterInfoXIC$XIC$from))
+      to <- as.numeric(svalue(filterInfoXIC$XIC$to))
       # This looks at each group of MS2 spectra and returns TRUE if any spectrum 
       # in that group survived filtering
       filtered <- apply(MS2indices, 1, function(x) any(btwn(filterData[[3]][x[1]:x[2]], 
@@ -136,11 +135,11 @@ filterSpectra <- function(h, ...) {
                             function(i) enabled(i) <- ms2))
   
   # Filter spectra
-  keep <- mapply(function(data, obj) {
+  keep <- mapply(function(data, obj, detransform) {
     if(svalue(obj$active)) {
-      btwn(data, svalue(obj$from), svalue(obj$to))
+      btwn(data, detransform(svalue(obj$from)), detransform(svalue(obj$to)))
     } else rep(TRUE, nSpectra)
-  }, filterData, filterInfo)
+  }, filterData, filterInfo, filterDetransform)
   
   colnames(keep) <- names(filterInfo)
   

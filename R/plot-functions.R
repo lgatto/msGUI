@@ -63,7 +63,9 @@ plotChromatogram <- function(zoom=NULL) {
   par(mar=c(3,3,0,1), mgp=c(2,0.45,0), tck=-.01, bty="n", lab=c(5, 3, 7), 
       adj=.5, las=1, cex=0.75)
   plot(xic, type = "h", ylim=c(0, 1.075), xlab="Retention time", xlim=xLimitsXIC, 
-       ylab=ifelse(settings$chromaMode, "Base peak intensity", "Total ion count"))
+       ylab=ifelse(settings$chromaMode, "Base peak intensity", "Total ion count"), 
+       xaxt = "n")
+  axis(1, at=axTicks(1), labels=formatRt2(axTicks(1)))
   lines(x=rep(spRtime(index), 2), y=c(0, 1), col="red", lty=3)
   text(x=xLimitsXIC[1], y=1.075, adj=0, 
        labels=paste("Max total ions ", maxTotalIons))
@@ -162,8 +164,9 @@ plotChromaZoom <- function() {
   
   par(mar=c(3, 3, 0, 0), mgp=c(2,0.45,0), tck=-.01, bty="n", lab=c(5, 3, 7), 
       adj=.5, las=1, cex=0.65)
-  plot(xic, type = "h", xlim=env$XICZoom$x, ylim=env$XICZoom$y, 
+  plot(xic, type = "h", xlim=env$XICZoom$x, ylim=env$XICZoom$y, xaxt = 'n',
        xlab="Retention time", 
        ylab=ifelse(settings$chromaMode, "Base peak intensity", "Total ion count"))
+  axis(1, at=axTicks(1), labels=formatRt2(axTicks(1)))
   abline(h=0, col="grey50")
 }

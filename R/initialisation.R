@@ -15,6 +15,8 @@ defaultSettings <- function() {
   spectrumHeight <- 250
   width <- 500
   
+  RtFormat <- "minutes:seconds" # c("minutes:seconds", "seconds", "minutes")
+  
   chromaMode <- FALSE # i.e. total ion count is the default
   
   # Fonts
