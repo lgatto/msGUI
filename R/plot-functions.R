@@ -86,27 +86,30 @@ plotSpectrumGraph <- function(zoom=NULL) {
   peaks[, 2] <- peaks[, 2]/basePeak  
   
   # Make labels
-  labels <- peaks[order(peaks[, 2], decreasing=TRUE), ]  
-  xCoords <- labels[, 1]  
-  n <- length(xCoords)
-  current <- 1  
-  out <- 1
-  
-  while(length(out) < settings$labelNumber & current < n) {
-    s <- 1
-    while(min(abs(xCoords[out] - xCoords[current+s])) <= settings$labelThreshold & current + s <= n) s <- s + 1
-    out <- c(out, current <- current + s)
+  if (settings$labelNumber > 1) {
+    labels <- peaks[order(peaks[, 2], decreasing=TRUE), ]  
+    xCoords <- labels[, 1]  
+    n <- length(xCoords)
+    current <- 1  
+    out <- 1
+    while(length(out) < settings$labelNumber & current < n) {
+      s <- 1
+      while(min(abs(xCoords[out] - xCoords[current+s])) <= settings$labelThreshold & current + s <= n) s <- s + 1
+      out <- c(out, current <- current + s)
+    }
+    labels <- labels[out[out<=n], ]
+  } else if (settings$labelNumber == 1) {
+    labels <- peaks[which.max(peaks[, 2]), , drop=FALSE] 
   }
   
-  labels <- labels[out[out<=n], ]
-    
   par(mar=c(3,3,0,1), mgp=c(2,0.45,0), tck=-.01, bty="n", lab=c(5, 3, 7), 
       adj=.5, las=1, cex=0.75)
   plot(peaks, xlab="Mass to charge ratio (M/Z)", ylab="Intensity", 
        type = ifelse(MsLevel==1, settings$MS1PlotType, settings$MS2PlotType), 
        xlim=xLimits[, MsLevel], ylim=c(0, 1.075)) 
-  text(labels, labels=round(labels[, 1], settings$digits), 
-       col="grey50", adj=c(0, 0))
+  if (settings$labelNumber > 0)
+    text(labels, labels=round(labels[, 1], settings$digits), 
+         col="grey50", adj=c(0, 0))  
   par(adj=0)   
   text(x=min(xLimits[, MsLevel]), y=1.075, 
        labels=paste("Base peak intensity ", round(basePeak, settings$digits)))
