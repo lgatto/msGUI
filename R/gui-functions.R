@@ -243,8 +243,8 @@ drawMain <- function(env) {
   ## Top group
   env$buttonOpenFile <- gbutton("Open file", container=groupUpper, 
                                 handler=openFileHandler)
-  env$buttonOpenObject <- gbutton("Open R object", container=groupUpper, 
-                                  handler=drawVarBrowser)
+#   env$buttonOpenObject <- gbutton("Open R object", container=groupUpper, 
+#                                   handler=drawVarBrowser)
   addSpring(groupUpper)
   env$buttonSettings <- gbutton("Settings", container=groupUpper, 
                                 handler=drawOptions)

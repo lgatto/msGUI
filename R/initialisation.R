@@ -1,7 +1,7 @@
 defaultSettings <- function() {
   
   fileTypes <- list("Mass spectrometry data files" = list(patterns = c("*.netCDF", "*.mzXML", "*.mzData", "*.mzML")), 
-                    "R data files" = list(patterns = c("*.RData","*.rda")), 
+#                     "R data files" = list(patterns = c("*.RData","*.rda")), 
                     "All files" = list(patterns = c("*")))
   digits <- 2
   
