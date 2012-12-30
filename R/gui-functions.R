@@ -46,6 +46,9 @@ wrapper <- function(filename=NULL, object=NULL, device="png", verbose=FALSE) {
   environment(resetCache) <- env
   environment(drawOptions) <- env
   environment(optsHandlerDefaults) <- env
+  environment(updateRanges) <- env
+  environment(formatRt2) <- env
+  environment(deformatRt) <- env
   
   drawMain(env)
   initialiseGUI()
@@ -131,7 +134,7 @@ updateExperiment <- function(env) {
 }
 
 updateSpectrumInfo <- function() {
-  svalue(specInfo$rt) <- formatRt(spRtime(index))
+  svalue(specInfo$rt) <- formatRt2(spRtime(index))
   svalue(specInfo$ind) <- paste(counter, " of ", length(currSequence))
   svalue(specInfo$acno) <- spIndex(index)
   svalue(specInfo$mslvl) <- spMsLevel(index)  
