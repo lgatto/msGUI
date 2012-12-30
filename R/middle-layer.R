@@ -37,9 +37,9 @@ makeDataEnv <- function(filename) {
   ##  An environment storing the filehandle,
   ##  the data header and runInfo
   e <- new.env(parent = emptyenv(), hash = TRUE)   
-  assign("fh", openMSfile(filename), env = e)
-  assign("hd", header(e$fh), env = e)
-  assign("runInfo", runInfo(e$fh), env = e)
+  assign("fh", openMSfile(filename), envir = e)
+  assign("hd", header(e$fh), envir = e)
+  assign("runInfo", runInfo(e$fh), envir = e)
   lockEnvironment(e, bindings = TRUE)
   return(e)
 }
@@ -162,15 +162,15 @@ makeDataEnvMSnExp <- function(object) {
   ##  An environment storing the filehandle,
   ##  the data header and runInfo
   e <- new.env(parent = emptyenv(), hash = TRUE)   
-  assign("fh", assayData(object), env = e)
+  assign("fh", assayData(object), envir = e)
   hd <- header(object)
-  assign("hd", hd[order(hd$acquisition.number), ], env = e)
+  assign("hd", hd[order(hd$acquisition.number), ], envir = e)
   assign("runInfo", list(scanCount=length(object), 
                          lowMZ=min(e$hd$precursor.mz), 
                          highMZ=max(e$hd$precursor.mz), 
                          dStartTime=min(e$hd$retention.time), 
                          dEndTime=max(e$hd$retention.time), 
-                         msLevels=unique(e$hd$ms.level)), env = e)
+                         msLevels=unique(e$hd$ms.level)), envir = e)
   e$hd[, c("lowMZ", "highMZ")] <- t(sapply(rownames(hd), 
                                            function(x) 
                                              range(mz(get(x, envir=e$fh)))))

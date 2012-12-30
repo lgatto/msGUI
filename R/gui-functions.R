@@ -378,10 +378,10 @@ drawMain <- function(env) {
   
   env$groupLeftButtons <- ggroup(container=groupMiddleLeft)
   env$buttonLeft <- gbutton(text=gettext("Previous"), handler=updateSpectrum, 
-                            action=-1, cont=groupLeftButtons)
+                            action=-1, container=groupLeftButtons)
   
   env$buttonRight <- gbutton(text=gettext("Next"), handler=updateSpectrum, 
-                             action=1, cont=env$groupLeftButtons)
+                             action=1, container=env$groupLeftButtons)
   
   env$plotTop <- ggraphics(container=groupPlots, width=settings$width,
                            height=settings$spectrumHeight, ps=12, dpi=75)
@@ -675,7 +675,7 @@ drawOptions <- function (h, ...) {
              settings$MS2PlotType!=ifelse(svalue(opts$MS2PlotType)=="", "h", "l"), 
              settings$chromaMode!=(svalue(opts$chromaMode)=="Base peak intensity")
              ))) {
-      if(verbose) cat("Applying changes... ")
+      if(verbose) cat("Applying changes...\n")
       settings$spectrumHeight <- svalue(opts$spectrumHeight)
       settings$chromaHeight <- svalue(opts$chromaHeight)
       settings$width <- svalue(opts$width)
@@ -696,7 +696,6 @@ drawOptions <- function (h, ...) {
       }        
       resetCache()
       updateSpectrum()
-      if(verbose) cat("     done!\n")
     }
     dispose(env$optsWindow)
   })
