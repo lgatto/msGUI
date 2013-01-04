@@ -11,5 +11,5 @@ Description: msGUI is a simple graphical user interface
 	     It allows users to navigate MS1 and/or higher 
 	     level spectra as well as displaying extracted 
 	     ion chromatograms.
-Depends: mzR, MSnbase
+Depends: mzR, MSnbase, methods
 License: Artistic-2.0
