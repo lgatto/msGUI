@@ -10,7 +10,7 @@ setMethod("msGUI", "character",
             wrapper(filename=object, ...)
           })
 
-setMethod("msGUI", "MSnExp",
-          function(object, ...) {
-            wrapper(object=object, ...)
-          })
+## setMethod("msGUI", "MSnExp",
+##           function(object, ...) {
+##             wrapper(object=object, ...)
+##           })
