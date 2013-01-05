@@ -1,9 +1,6 @@
-wrapper <- function(filename=NULL, object=NULL, device="png", verbose=FALSE) {  
-  
+wrapper <- function(filename=NULL, object=NULL, device="png", verbose=FALSE) {
   env <- environment()
-  
   settings <- defaultSettings()
-  
   options(guiToolkit = "RGtk2")
   
   zoomWindowClosed <- TRUE
@@ -75,7 +72,8 @@ formatRt2 <- function(x) {
 
 deformatRt <- function(x) {
   switch(settings$RtFormat, 
-         "minutes:seconds" = vapply(strsplit(x, ":"), function(i) as.numeric(i[[1]])*60 + as.numeric(i[[2]]), 1), 
+         "minutes:seconds" = vapply(strsplit(x, ":"),
+           function(i) as.numeric(i[[1]])*60 + as.numeric(i[[2]]), 1), 
          "minutes" = x*60, 
          "seconds" = x)
 }
@@ -99,13 +97,14 @@ updateExperiment <- function(env) {
   updateExperimentInfo()
   
   env$filterData <- list(spRtime(), spIndex(), spPrecMz(), 
-                         spPrecInt(), spPrecCharge(), spPrecMz()*spPrecCharge())
+                         spPrecInt(), spPrecCharge(),
+                         spPrecMz()*spPrecCharge())
   # filterData stores data for filters for fast access. 
   
-  env$filterTransform <- list(formatRt2, identity, identity, identity, identity, 
-                              identity)
-  env$filterDetransform <- list(deformatRt, as.numeric, as.numeric, as.numeric, 
-                                as.numeric, as.numeric)
+  env$filterTransform <- list(formatRt2, identity, identity,
+                              identity, identity, identity)
+  env$filterDetransform <- list(deformatRt, as.numeric, as.numeric,
+                                as.numeric, as.numeric, as.numeric)
   
   env$nSpectra <- length(filterData[[1]])
   env$xLimits <- sapply(1:2, function(i) if(any(spMsLevel()==i)) 
@@ -239,7 +238,6 @@ openFileHandler <- function(h, ...) {
 }
 
 drawMain <- function(env) {
-  
   # Window and structure
   env$msGUIWindow <- gwindow("msGUI", visible=FALSE, handler=function(h, ...) {
     env$closingMsGUI <- TRUE
@@ -285,12 +283,10 @@ drawMain <- function(env) {
   env$filterInfoMS <- list()
   env$filterInfoXIC <- list()
   
-  # Left pane content
-  
+  # Left pane content  
   env$le <- glayout(container=groupMiddleLeft, spacing=1)
   
-  # Experiment info
-  
+  # Experiment info  
   i <- 1
   
   le[i, 1:3] <- (env$separator$t1 <- glabel("", container=le))
@@ -334,8 +330,7 @@ drawMain <- function(env) {
   
   le[i + 8, 1:5] <- (env$separator$t3 <- glabel("", container=le))
   
-  # Filters
-  
+  # Filters  
   i <- 18
   
   le[i, 1] <- (env$headings$t3 <- glabel("Filter", container=le))
@@ -375,8 +370,7 @@ drawMain <- function(env) {
   
   le[i + 11, 1:5] <- (env$separator$t19 <- glabel("", container=le))
   
-  # Buttons
-  
+  # Buttons  
   addSpring(groupMiddleLeft)
   
   env$groupLeftButtons <- ggroup(container=groupMiddleLeft)
@@ -391,8 +385,7 @@ drawMain <- function(env) {
   env$plotBottom <- ggraphics(container=groupPlots, width=settings$width, 
                               height=settings$chromaHeight, ps=12, dpi=75)
   
-  # Styling
-  
+  # Styling  
   lapply(headings, setFont, settings$fontHead)
   lapply(regular, setFont, settings$fontReg)
   lapply(regularPrec, setFont, settings$fontReg)
@@ -404,8 +397,7 @@ drawMain <- function(env) {
   lapply(filterInfo, function(x) lapply(x, setFont, settings$fontReg)) 
   lapply(filterInfoXIC, function(x) lapply(x, setFont, settings$fontReg)) 
   
-  # Zoom handlers and GUI functions
-  
+  # Zoom handlers and GUI functions  
   drawZoom <- function() {    
     env$zoomWindowClosed <- FALSE
     env$zoomWindow <- gwindow("Spectrum fragment", visible=FALSE, 
@@ -435,14 +427,14 @@ drawMain <- function(env) {
   } 
   
   fixX <- function(x, lower, upper) {
-    if(device=="png") {
+    if (device == "png") {
       x <- ((x + .04) / 1.08 - 50/settings$width) * settings$width / (settings$width - 50 - 25) * (upper - lower) + lower
       sapply(sapply(x, max, lower), min, upper) # so that coordinates don't exceed limits
     } else x
   }
   
   fixY <- function(x, lower, upper, height) {
-    if(device=="png") {
+    if (device == "png") {
       x <- ((x + .04) / 1.08 - 40/height) * height / (height - 40 - 22) * (upper - lower) + lower
       sapply(sapply(x, max, lower), min, upper)
     } else x
@@ -487,26 +479,21 @@ drawMain <- function(env) {
     xicRangeX <- range(xic(n=1, FALSE)[, 1])
     xCoord <- fixX(h$x, xicRangeX[1], xicRangeX[2])[2]
     
-    if(verbose) cat("coords: x", h$x, "y", h$y, "recalculated coords", xCoord, "\n")
+    if (verbose) cat("coords: x", h$x, "y", h$y, "recalculated coords", xCoord, "\n")
     
-    if(same(h)) {
+    if (same(h)) {
       prevCounter <- counter    
-      env$counter <- which.min(abs(spRtime(currSequence)-xCoord))
-      
+      env$counter <- which.min(abs(spRtime(currSequence)-xCoord))      
       # update graphs if index has changed
-      if(prevCounter!=counter) updateSpectrum() 
-      
+      if(prevCounter!=counter) updateSpectrum()       
     } else {
       env$XICZoom$x <- fixX(h$x, xicRangeX[1], xicRangeX[2])
-      env$XICZoom$y <- fixY(h$y, 0, 1.05, settings$chromaHeight) 
-      
-      if(XICWindowClosed) drawZoomXIC()
+      env$XICZoom$y <- fixY(h$y, 0, 1.05, settings$chromaHeight)       
+      if (XICWindowClosed) drawZoomXIC()
       visible(plotXICw) <- TRUE
       plotChromaZoom()
       plotXIC(XICZoom)
-    }
-    
-    
+    }        
     clickSwitch(TRUE)   
   }
   
