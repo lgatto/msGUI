@@ -12,6 +12,7 @@ wrapper <- function(filename=NULL, object=NULL, device="png", verbose=FALSE) {
   XICvalues <- TRUE
   experimentLoaded <- FALSE
   closingMsGUI <- FALSE
+  forceRedraw <- FALSE
   
   environment(openFileHandler) <- env  
   environment(drawMain) <- env  
@@ -46,18 +47,23 @@ wrapper <- function(filename=NULL, object=NULL, device="png", verbose=FALSE) {
   environment(updateRanges) <- env
   environment(formatRt2) <- env
   environment(deformatRt) <- env
+  environment(filterStats) <- env
   
   drawMain(env)
   initialiseGUI()
   
   if(!is.null(filename)) {
+    if (verbose) cat("Loading file...   ")
     makeMzRrampAccessors(filename, env)
+    if (verbose) cat("done\n")
     updateExperiment(env)
     experimentLoaded <- TRUE
   }   
   
   if(!is.null(object)) {
+    if (verbose) cat("Loading object...   ")
     makeMSnExpAccessors(object, env)
+    if (verbose) cat("done\n")
     updateExperiment(env)
     experimentLoaded <- TRUE
   }
@@ -72,10 +78,11 @@ formatRt2 <- function(x) {
 
 deformatRt <- function(x) {
   switch(settings$RtFormat, 
-         "minutes:seconds" = vapply(strsplit(x, ":"),
-           function(i) as.numeric(i[[1]])*60 + as.numeric(i[[2]]), 1), 
-         "minutes" = x*60, 
-         "seconds" = x)
+         "minutes:seconds" = ifelse(grepl("^[0-9]*(:[0-9]{0,2})?$", x), {
+            x <- unlist(strsplit(x, ":"))
+            as.numeric(x[1])*60 + ifelse(length(x) > 1, as.numeric(x[2]), 0)}, NA), 
+         "minutes" = ifelse(grepl("^[0-9]$"), as.numeric(x)*60, NA), 
+         "seconds" = ifelse(grepl("^[0-9]$"), as.numeric(x), NA))
 }
 
 updateExperimentInfo <- function() {
@@ -95,6 +102,9 @@ counterReset <- function(env) {
 
 updateExperiment <- function(env) {  
   updateExperimentInfo()
+  
+  env$filterNames <- c("Retention time", "Index", "Prec MZ", "Prec intensity", 
+                       "Prec charge", "Prec mass")
   
   env$filterData <- list(spRtime(), spIndex(), spPrecMz(), 
                          spPrecInt(), spPrecCharge(),
@@ -132,14 +142,20 @@ updateExperiment <- function(env) {
   updateSpectrum()  
 }
 
-updateSpectrumInfo <- function() {
-  svalue(specInfo$rt) <- formatRt2(spRtime(index))
-  svalue(specInfo$ind) <- paste(counter, " of ", length(currSequence))
-  svalue(specInfo$acno) <- spIndex(index)
-  svalue(specInfo$mslvl) <- spMsLevel(index)  
-  svalue(specPrecInfo$pmz) <- round(spPrecMz(index), digits=settings$digits)
-  svalue(specPrecInfo$int) <- round(spPrecInt(index), digits=settings$digits)
-  svalue(specPrecInfo$charge) <- round(spPrecCharge(index), digits=settings$digits) 
+updateSpectrumInfo <- function(blank=FALSE) {
+  if(blank) {
+    lapply(list(specInfo$rt, specInfo$ind, specInfo$acno, specInfo$mslvl,
+                specPrecInfo$pmz, specPrecInfo$int, specPrecInfo$charge), 
+           function(i) svalue(i) <- "")
+  } else {
+    svalue(specInfo$rt) <- formatRt2(spRtime(index))
+    svalue(specInfo$ind) <- paste(counter, " of ", length(currSequence))
+    svalue(specInfo$acno) <- spIndex(index)
+    svalue(specInfo$mslvl) <- spMsLevel(index)  
+    svalue(specPrecInfo$pmz) <- round(spPrecMz(index), digits=settings$digits)
+    svalue(specPrecInfo$int) <- round(spPrecInt(index), digits=settings$digits)
+    svalue(specPrecInfo$charge) <- round(spPrecCharge(index), digits=settings$digits) 
+  }
 }
 
 updateSpectrum <- function(h=list(action=0), ...) {
@@ -174,20 +190,16 @@ updateSpectrum <- function(h=list(action=0), ...) {
   }
   
   clickSwitch(TRUE)
+  if (forceRedraw) clickSwitch(TRUE)
   buttonSwitch(TRUE)
 }
 
 clickSwitch <- function(on) {
-  if(on) {
-    mapply(unblockHandler, list(plotTop, plotBottom), clickHandlerIDs) 
-#     if(verbose) cat("Plot interactivity activated\n")
-  } else {
-    mapply(blockHandler, list(plotTop, plotBottom), clickHandlerIDs) 
-#     if(verbose) cat("Plot interactivity disabled\n")   
-  }
-  if(!env$anyMS1spectra) {
-    blockHandler(plotBottom, clickHandlerIDs[[2]])
-  }
+  fun <- if (on) unblockHandler else blockHandler
+  mapply(fun, list(plotTop, plotBottom), clickHandlerIDs)
+  if (!zoomWindowClosed) fun(plotZoom, clickHandlerZoomIDs)
+  if (!XICWindowClosed) fun(plotXICw, clickHandlerZoomXICIDs)
+  if (!env$anyMS1spectra) blockHandler(plotBottom, clickHandlerIDs[[2]])
 }
 
 buttonSwitch <- function(action=TRUE) {
@@ -231,7 +243,9 @@ openFileHandler <- function(h, ...) {
       visible(plotBottom) <- TRUE
       plotMsg()
     }
-    makeMzRrampAccessors(filename, env) #envir)
+    if (verbose) cat("Loading file...   ")
+    makeMzRrampAccessors(filename, env)
+    if (verbose) cat("done\n")
     updateExperiment(env)    
     experimentLoaded <- TRUE
   }
@@ -400,7 +414,7 @@ drawMain <- function(env) {
   # Zoom handlers and GUI functions  
   drawZoom <- function() {    
     env$zoomWindowClosed <- FALSE
-    env$zoomWindow <- gwindow("Spectrum fragment", visible=FALSE, 
+    env$zoomWindow <- gwindow("Spectrum fragment", visible=FALSE, parent=msGUIWindow, 
                               handler=function(h, ...) {
                                 env$zoomWindowClosed <- TRUE
                                 env$spectrumZoom <- NULL
@@ -414,7 +428,7 @@ drawMain <- function(env) {
   
   drawZoomXIC <- function() {    
     env$XICWindowClosed <- FALSE
-    env$XICWindow <- gwindow("XIC", visible=FALSE, 
+    env$XICWindow <- gwindow("XIC", visible=FALSE, parent=msGUIWindow, 
                              handler=function(h, ...) {
                                env$XICWindowClosed <- TRUE
                                env$XICZoom <- NULL

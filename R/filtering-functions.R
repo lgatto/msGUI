@@ -21,6 +21,14 @@ updateRanges <- function(obj, values, transform) {
   svalue(obj$from) <- transform(round(min(values), digits=settings$digits))
   svalue(obj$to) <- transform(round(max(values), digits=settings$digits))
 }
+
+filterStats <- function(names, data, mslevels, sequence) {
+  cat("Filtering summary\n")
+  cat(format("Number of spectra", width=18), length(currSequence), "\n", sep="")
+  cat(format("MS levels", width=18), paste(unique(spMsLevel(currSequence)), collapse=", "), "\n", sep="")
+  mapply(function(name, value) cat(format(name, width=18), paste(range(value[currSequence]), collapse=" - "), "\n", sep=""), 
+         filterNames, filterData)
+}
   
 filterReset <- function(env) {  
   blockFilters()
@@ -145,6 +153,8 @@ filterSpectra <- function(h, ...) {
   
   MS1filters <- c("rt", "index")
   
+  saveFilterValues()
+  
   keepMS1 <- apply(keep[, MS1filters], 1, sum) == length(MS1filters)
   keepMS2 <- apply(keep, 1, sum) == length(filterInfo)
   
@@ -153,16 +163,14 @@ filterSpectra <- function(h, ...) {
   if(!svalue(filterInfoMS$ms1)) keep <- keep & spMsLevel() != 1
   if(!svalue(filterInfoMS$ms2)) keep <- keep & spMsLevel() != 2
   
-  saveFilterValues()
-  
   blockFilters(FALSE)
   
   # Update sequence of spectra and update chart
   if(any(keep)) {
     newSequence <- spIndex()[keep]
     # Compare sequences and update if necessary
-    if(!identical(currSequence, newSequence)) {
-      
+    if(!identical(currSequence, newSequence) | forceRedraw) {
+
       prevIndex <- currSequence[counter]
       env$currSequence <- newSequence
       
@@ -170,14 +178,44 @@ filterSpectra <- function(h, ...) {
       env$counter <- which.min(abs(newSequence - prevIndex))
       
       # also update graphs if index has changed
-      if(prevIndex!=newSequence[counter]) {
+      if(prevIndex!=newSequence[counter] | forceRedraw) {
         updateXIC <- FALSE
         updateSpectrum()
+        env$forceRedraw <- FALSE
       }
       else updateSpectrumInfo()
     } 
-  } else cat("Not a single spectrum survived filtering!\n", 
-             "Please select different values or turn off some filters.\n", sep="")
+    
+    if (verbose) filterStats()
+    
+  } else {
+    
+    visible(plotTop) <- TRUE
+    plotMsg()
+    visible(plotBottom) <- TRUE
+    plotMsg()
+    
+    if(!zoomWindowClosed) {
+      visible(plotZoom) <- TRUE      
+      plotMsg()
+    }
+    
+    if(!XICWindowClosed) {
+      visible(plotXICw) <- TRUE      
+      plotMsg()
+    }
+    
+    visible(msGUIWindow) <- TRUE
+    
+    buttonSwitch(FALSE)
+    clickSwitch(FALSE)
+    
+    env$forceRedraw <- TRUE
+    updateSpectrumInfo(blank=TRUE)
+    
+    gmessage(message="No spectra survived filtering!\nPlease select different filter values.", 
+             title="")
+  }
   if(updateXIC) {
     plotXIC(XICZoom, noCache=TRUE) 
     if(!zoomWindowClosed) {
