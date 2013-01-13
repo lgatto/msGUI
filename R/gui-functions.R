@@ -209,12 +209,12 @@ buttonSwitch <- function(action=TRUE) {
     if(length(currSequence)==1) {
       enabled(buttonLeft) <- FALSE
       enabled(buttonRight) <- FALSE      
-    } else 
+    } else {
       # If we have multiple spectra and the first is current
       if(counter==1) {
         enabled(buttonLeft) <- FALSE
         enabled(buttonRight) <- TRUE
-      } else 
+      } else {
         # ... the last one is current...
         if(counter==length(currSequence)) {
           enabled(buttonLeft) <- TRUE
@@ -224,11 +224,11 @@ buttonSwitch <- function(action=TRUE) {
           enabled(buttonLeft) <- TRUE
           enabled(buttonRight) <- TRUE
         }
+      }
+    }
   } else {
-    
     enabled(buttonLeft) <- FALSE
     enabled(buttonRight) <- FALSE
-    
   }
 }
 

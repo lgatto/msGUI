@@ -184,6 +184,7 @@ filterSpectra <- function(h, ...) {
         env$forceRedraw <- FALSE
       }
       else updateSpectrumInfo()
+      buttonSwitch(TRUE)
     } 
     
     if (verbose) filterStats()
