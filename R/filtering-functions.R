@@ -95,8 +95,7 @@ filterSpectra <- function(h, ...) {
   # Check entered values, fix if needed
   mapply(validityCheck, filterInfo, filterData, filterValues, 
          filterDetransform, filterTransform)
-#   mapply(validityCheck, filterInfoXIC, filterData[3], filterValuesXIC, 
-#          list(as.numeric), list(identity))
+  
   pmzRange <- range(filterData[[3]])
   if (!btwn(svalue(filterInfoXIC$XIC$x), pmzRange[1], pmzRange[2]))
     svalue(filterInfoXIC$XIC$x) <- round(mean(pmzRange), digits=0)
@@ -104,8 +103,8 @@ filterSpectra <- function(h, ...) {
   # If XIC filter active, its values are forced upon the Precursor MZ filter
   if(env$anyMS1spectra & svalue(filterInfoXIC$XIC$active)) {
     svalue(filterInfo$pmz$active) <- TRUE
-    svalue(filterInfo$pmz$from) <- max(pmzRange[1], svalue(filterInfoXIC$XIC$x) - settings$Da)
-    svalue(filterInfo$pmz$to) <- min(pmzRange[2], svalue(filterInfoXIC$XIC$x) + settings$Da)
+    svalue(filterInfo$pmz$from) <- max(pmzRange[1], svalue(filterInfoXIC$XIC$x) - settings$Da/2)
+    svalue(filterInfo$pmz$to) <- min(pmzRange[2], svalue(filterInfoXIC$XIC$x) + settings$Da/2)
   }
   
   updateXIC <- FALSE

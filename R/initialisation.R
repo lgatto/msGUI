@@ -6,7 +6,8 @@ defaultSettings <- function() {
   digits <- 2
   
   labelNumber <- 5
-  Da <- 2
+  Da <- .5 * 2 # for XIC filtering 
+  labelDist <- .5 # for labels in graphs
   
   MS1PlotType <- "l"
   MS2PlotType <- "h"

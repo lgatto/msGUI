@@ -25,7 +25,6 @@ wrapper <- function(filename=NULL, object=NULL, device="png", verbose=FALSE) {
   environment(validityCheck) <- env
   environment(filterReset) <- env
   environment(filterSpectra) <- env
-  environment(filterXIC) <- env
   environment(filterSwitch) <- env
   environment(clickSwitch) <- env
   environment(initialiseGUI) <- env
@@ -380,7 +379,7 @@ drawMain <- function(env) {
   
   le[i + 10, 1] <- (env$filterInfoXIC$XIC$active <- gcheckbox("Prec M/Z for XIC", container=le))
   le[i + 10, 2] <- (env$filterInfoXIC$XIC$x <- gedit("", container=le, width=5, coerce.with=as.numeric))
-  le[i + 10, 3, anchor=c(-1, 0)] <- (env$filterInfoXIC$XIC$text <- glabel(paste("+/-", settings$Da), container=le))
+  le[i + 10, 3, anchor=c(-1, 0)] <- (env$filterInfoXIC$XIC$text <- glabel("±0.5 Da", container=le))
   
   le[i + 11, 1:5] <- (env$separator$t19 <- glabel("", container=le))
   
@@ -600,6 +599,7 @@ optsHandlerDefaults <- function(h, ...) {
   svalue(opts$chromaMode) <- ifelse(defaults$chromaMode, "Base peak intensity", 
                                     "Total ion count")
   svalue(opts$Da) <- defaults$Da
+  svalue(opts$labelDist) <- defaults$labelDist
   svalue(opts$RtFormat) <- defaults$RtFormat
 }
 
@@ -617,7 +617,8 @@ drawOptions <- function (h, ...) {
   env$l[1, 1] <- (env$l1 <- glayout(container=l, spacing=settings$uiGridSpacing))
   env$l[1, 2] <- (env$l2 <- glayout(container=l, spacing=settings$uiGridSpacing))
   
-  env$l1[1, 1:3] <- (env$opts$headings$t1 <- glabel("Graph sizes", container=l1))
+  env$l1[1, 1:3] <- (env$opts$headings$t1 <- glabel("Graph settings", container=l1))
+  env$l1[2, 1, anchor=c(-1, 0)] <- (env$opts$text$t19 <- glabel("Size", container=l1)) 
   env$l1[2, 2, anchor=c(0, 0)] <- (env$opts$text$t1 <- glabel("height", container=l1))  
   env$l1[2, 3, anchor=c(0, 0)] <- (env$opts$text$t2 <- glabel("width", container=l1))
   env$l1[3, 2] <- (env$opts$spectrumHeight <- gspinbutton(from=250, to=500, by=10, 
@@ -636,22 +637,22 @@ drawOptions <- function (h, ...) {
   i <- 5
   
   env$l1[i, 1:3] <- (env$opts$separator$t1 <- glabel("", container=l1))
-  env$l1[i + 1, 1:2, anchor=c(-1, 0)] <- (env$opts$text$t3 <- glabel("Number of peaks to label", 
+  env$l1[i + 1, 1:2, anchor=c(-1, 0)] <- (env$opts$text$t3 <- glabel("# of peak labels", 
                                                                      container=l1))
   env$l1[i + 1, 3] <- (env$opts$labelNumber <- gedit(settings$labelNumber, 
                                                      coerce.with=as.numeric, 
                                                      width=2, container=l1))
-  env$l1[i + 2, 1:2, anchor=c(-1, 0)] <- (env$opts$text$t16 <- glabel("Da size", 
+  env$l1[i + 2, 1:2, anchor=c(-1, 0)] <- (env$opts$text$t16 <- glabel("Distance labels by", 
                                                                       container=l1))
-  env$l1[i + 2, 3] <- (env$opts$Da <- gedit(settings$Da, 
+  env$l1[i + 2, 3] <- (env$opts$labelDist <- gedit(settings$labelDist, 
                                             coerce.with=as.numeric, 
                                             width=2, container=l1))
-  env$l1[i + 3, 1, anchor=c(-1, 0)] <- (env$opts$text$t17 <- glabel("Rt format", 
+  env$l1[i + 3, 1:3, anchor=c(-1, 0)] <- (env$opts$text$t17 <- glabel("Retention time in", 
                                                                     container=l1))
-  env$l1[i + 3, 2:3] <- (env$opts$RtFormat <- gdroplist(settings$RtFormats, 
+  env$l1[i + 4, 2:3] <- (env$opts$RtFormat <- gdroplist(settings$RtFormats, 
                                                         match(settings$RtFormat, settings$RtFormats),  
                                                         container=l1))  
-  env$l1[i + 4, 1:3] <- (env$opts$separator$t2 <- glabel("", container=l1))
+  env$l1[i + 5, 1:3] <- (env$opts$separator$t2 <- glabel("", container=l1))
   
   env$l2[1, 1:3] <- (env$opts$headings$t2 <- glabel("MS mode", container=l2))
   env$l2[2, 2, anchor=c(1, 0)] <- (env$opts$text$t4 <- glabel("MS1     ", container=l2))
@@ -674,7 +675,14 @@ drawOptions <- function (h, ...) {
                                                          "Base peak intensity"), 
                                                        ifelse(settings$chromaMode, 2, 1), 
                                                        container=l2))
-  env$l2[i + 3, 1:3] <- (env$opts$separator$t4 <- glabel("", container=l2))
+  env$l2[i + 3, 1:3] <- (env$opts$separator$t5 <- glabel("", container=l2))
+  env$l2[i + 4, 1:3] <- (env$opts$headings$t7 <- glabel("Filtering", container=l2))
+  env$l2[i + 5, 1:2, anchor=c(-1, 0)] <- (env$opts$text$t16 <- glabel("Da size", 
+                                                                      container=l1))
+  env$l2[i + 5, 3] <- (env$opts$Da <- gedit(settings$Da, 
+                                            coerce.with=as.numeric, 
+                                            width=2, container=l1))
+  env$l2[i + 6, 1:3] <- (env$opts$separator$t4 <- glabel("", container=l2))
   
   env$optsButtons <- ggroup(container=optsGroup, horizontal=TRUE)
   env$opts$defaults <- gbutton("Restore defaults", container=optsButtons, 
@@ -691,7 +699,8 @@ drawOptions <- function (h, ...) {
              settings$MS2PlotType!=ifelse(svalue(opts$MS2PlotType)=="", "h", "l"), 
              settings$chromaMode!=(svalue(opts$chromaMode)=="Base peak intensity"), 
              settings$Da!=svalue(opts$Da), 
-             settings$RtFormat!=svalue(opts$RtFormat)
+             settings$RtFormat!=svalue(opts$RtFormat), 
+             settings$labelDist!=svalue(opts$labelDist)
     ))) {
       if(verbose) cat("Applying changes...\n")
       settings$spectrumHeight <- svalue(opts$spectrumHeight)
@@ -704,6 +713,7 @@ drawOptions <- function (h, ...) {
       settings$Da <- svalue(opts$Da)
       prevRtFormat <- settings$RtFormat
       settings$RtFormat <- svalue(opts$RtFormat)
+      settings$labelDist <- svalue(opts$labelDist)
       
       updateExperimentInfo()
       blockFilters()
@@ -711,9 +721,7 @@ drawOptions <- function (h, ...) {
                                                         prevRtFormat))
       svalue(env$filterInfo$rt$to) <-formatRt2(deformatRt(svalue(filterInfo$rt$to), 
                                                           prevRtFormat))
-      svalue(filterInfoXIC$XIC$text) <- paste("+/-", svalue(opts$Da))
       filterSpectra()
-#       saveFilterValues()
       blockFilters(FALSE)
       
       size(plotTop) <- c(settings$width, settings$spectrumHeight)
