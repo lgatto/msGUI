@@ -374,8 +374,8 @@ drawMain <- function(env) {
   le[i + 5, 3] <- (env$filterInfo$pc$to <- gedit("", container=le, width=5))
   le[i + 6, 1] <- (env$filterInfo$mass$active <- gcheckbox("Precursor mass", container=le))
   le[i + 6, 2] <- (env$filterInfo$mass$from <- gedit("", container=le, width=5))
+
   le[i + 6, 3] <- (env$filterInfo$mass$to <- gedit("", container=le, width=5))
-  
   le[i + 7, 1:5] <- (env$separator$t3 <- glabel("", container=le))
   
   le[i + 8, 1, anchor=c(-1,0)] <- (env$regular$t12 <- glabel("Display MS levels", container=le))
@@ -386,7 +386,7 @@ drawMain <- function(env) {
   
   le[i + 10, 1] <- (env$filterInfoXIC$XIC$active <- gcheckbox("Prec M/Z for XIC", container=le))
   le[i + 10, 2] <- (env$filterInfoXIC$XIC$x <- gedit("", container=le, width=5, coerce.with=as.numeric))
-  le[i + 10, 3, anchor=c(-1, 0)] <- (env$filterInfoXIC$XIC$text <- glabel("±0.5 Da", container=le))
+  le[i + 10, 3, anchor=c(-1, 0)] <- (env$filterInfoXIC$XIC$text <- glabel("+/- 0.5 Da", container=le))
   
   le[i + 11, 1:5] <- (env$separator$t19 <- glabel("", container=le))
   
@@ -758,3 +758,4 @@ drawOptions <- function (h, ...) {
 setFont <- function(x, style) font(x) <- style
 
 same <- function(h) abs(h$x[1]-h$x[2]) < 1/200 & abs(h$y[1]-h$y[2]) < 1/200
+
