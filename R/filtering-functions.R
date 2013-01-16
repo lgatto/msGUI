@@ -40,7 +40,7 @@ filterReset <- function(env) {
   lapply(filterInfoMS, function(i) svalue(i) <- TRUE)
   
   # Filter for XIC
-  mapply(updateRanges, filterInfoXIC, list(spPrecMz()), list(identity))
+  svalue(filterInfoXIC$XIC$x) <- round(mean(range(filterData[[3]]), digits=0))
     
   saveFilterValues()  
   blockFilters(FALSE)
@@ -95,14 +95,17 @@ filterSpectra <- function(h, ...) {
   # Check entered values, fix if needed
   mapply(validityCheck, filterInfo, filterData, filterValues, 
          filterDetransform, filterTransform)
-  mapply(validityCheck, filterInfoXIC, filterData[3], filterValuesXIC, 
-         list(as.numeric), list(identity))
+#   mapply(validityCheck, filterInfoXIC, filterData[3], filterValuesXIC, 
+#          list(as.numeric), list(identity))
+  pmzRange <- range(filterData[[3]])
+  if (!btwn(svalue(filterInfoXIC$XIC$x), pmzRange[1], pmzRange[2]))
+    svalue(filterInfoXIC$XIC$x) <- round(mean(pmzRange), digits=0)
   
   # If XIC filter active, its values are forced upon the Precursor MZ filter
   if(env$anyMS1spectra & svalue(filterInfoXIC$XIC$active)) {
     svalue(filterInfo$pmz$active) <- TRUE
-    svalue(filterInfo$pmz$from) <- svalue(filterInfoXIC$XIC$from)
-    svalue(filterInfo$pmz$to) <- svalue(filterInfoXIC$XIC$to)
+    svalue(filterInfo$pmz$from) <- max(pmzRange[1], svalue(filterInfoXIC$XIC$x) - settings$Da)
+    svalue(filterInfo$pmz$to) <- min(pmzRange[2], svalue(filterInfoXIC$XIC$x) + settings$Da)
   }
   
   updateXIC <- FALSE
@@ -114,8 +117,8 @@ filterSpectra <- function(h, ...) {
     
     if(svalue(filterInfoXIC$XIC$active)) {
       
-      from <- as.numeric(svalue(filterInfoXIC$XIC$from))
-      to <- as.numeric(svalue(filterInfoXIC$XIC$to))
+      from <- max(pmzRange[1], svalue(filterInfoXIC$XIC$x) - settings$Da)
+      to <- min(pmzRange[2], svalue(filterInfoXIC$XIC$x) + settings$Da)
       # This looks at each group of MS2 spectra and returns TRUE if any spectrum 
       # in that group survived filtering
       filtered <- apply(MS2indices, 1, function(x) any(btwn(filterData[[3]][x[1]:x[2]], 
@@ -224,11 +227,4 @@ filterSpectra <- function(h, ...) {
       plotSpectrumZoom(spectrumZoom)
     }
   }
-}
-
-filterXIC <- function(h, ...) {
-  blockFilters()
-  validityCheck(filterInfoXIC$XIC, filterData[[3]], filterValuesXIC)
-  
-  blockFilters(FALSE)
 }

@@ -379,8 +379,8 @@ drawMain <- function(env) {
   le[i + 9, 1:5] <- (env$separator$t9 <- glabel("", container=le))
   
   le[i + 10, 1] <- (env$filterInfoXIC$XIC$active <- gcheckbox("Prec M/Z for XIC", container=le))
-  le[i + 10, 2] <- (env$filterInfoXIC$XIC$from <- gedit("", container=le, width=5))
-  le[i + 10, 3] <- (env$filterInfoXIC$XIC$to <- gedit("", container=le, width=5))
+  le[i + 10, 2] <- (env$filterInfoXIC$XIC$x <- gedit("", container=le, width=5, coerce.with=as.numeric))
+  le[i + 10, 3, anchor=c(-1, 0)] <- (env$filterInfoXIC$XIC$text <- glabel(paste("+/-", settings$Da), container=le))
   
   le[i + 11, 1:5] <- (env$separator$t19 <- glabel("", container=le))
   
@@ -711,7 +711,9 @@ drawOptions <- function (h, ...) {
                                                         prevRtFormat))
       svalue(env$filterInfo$rt$to) <-formatRt2(deformatRt(svalue(filterInfo$rt$to), 
                                                           prevRtFormat))
-      saveFilterValues()
+      svalue(filterInfoXIC$XIC$text) <- paste("+/-", svalue(opts$Da))
+      filterSpectra()
+#       saveFilterValues()
       blockFilters(FALSE)
       
       size(plotTop) <- c(settings$width, settings$spectrumHeight)
