@@ -27,7 +27,6 @@ wrapper <- function(filename=NULL, object=NULL, device="png", verbose=FALSE) {
   environment(filterSpectra) <- env
   environment(filterSwitch) <- env
   environment(clickSwitch) <- env
-  environment(initialiseGUI) <- env
   environment(plotXIC) <- env
   environment(plotSpectrum) <- env  
   environment(plotGeneric) <- env
@@ -49,7 +48,15 @@ wrapper <- function(filename=NULL, object=NULL, device="png", verbose=FALSE) {
   environment(filterStats) <- env
   
   drawMain(env)
-  initialiseGUI()
+  visible(msGUIWindow) <- TRUE  
+  visible(plotTop) <- TRUE
+  plotMsg()
+  visible(plotBottom) <- TRUE
+  plotMsg()
+  enabled(buttonLeft) <- FALSE
+  enabled(buttonRight) <- FALSE
+  filterSwitch(FALSE)
+  clickSwitch(FALSE)
   
   if(!is.null(filename)) {
     if (verbose) cat("Loading file...   ")
