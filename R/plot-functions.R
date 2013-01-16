@@ -96,7 +96,7 @@ plotSpectrumGraph <- function(zoom=NULL) {
     out <- 1
     while(length(out) < settings$labelNumber & current < n) {
       s <- 1
-      while(min(abs(xCoords[out] - xCoords[current+s])) <= settings$labelThreshold & current + s <= n) s <- s + 1
+      while(min(abs(xCoords[out] - xCoords[current+s])) <= settings$Da & current + s <= n) s <- s + 1
       out <- c(out, current <- current + s)
     }
     labels <- labels[out[out<=n], ]

@@ -76,13 +76,13 @@ formatRt2 <- function(x) {
          "seconds" = x)
 }
 
-deformatRt <- function(x) {
-  switch(settings$RtFormat, 
+deformatRt <- function(x, format=settings$RtFormat) {
+  switch(format, 
          "minutes:seconds" = ifelse(grepl("^[0-9]*(:[0-9]{0,2})?$", x), {
             x <- unlist(strsplit(x, ":"))
             as.numeric(x[1])*60 + ifelse(length(x) > 1, as.numeric(x[2]), 0)}, NA), 
-         "minutes" = ifelse(grepl("^[0-9]$"), as.numeric(x)*60, NA), 
-         "seconds" = ifelse(grepl("^[0-9]$"), as.numeric(x), NA))
+         "minutes" = ifelse(grepl("^[0-9]+([.][0-9]*)?$", x), as.numeric(x)*60, NA), 
+         "seconds" = ifelse(grepl("^[0-9]+([.][0-9]*)?$", x), as.numeric(x), NA))
 }
 
 updateExperimentInfo <- function() {
@@ -298,7 +298,7 @@ drawMain <- function(env) {
   env$filterInfoXIC <- list()
   
   # Left pane content  
-  env$le <- glayout(container=groupMiddleLeft, spacing=1)
+  env$le <- glayout(container=groupMiddleLeft, spacing=settings$uiGridSpacing)
   
   # Experiment info  
   i <- 1
@@ -597,8 +597,10 @@ optsHandlerDefaults <- function(h, ...) {
   svalue(opts$labelNumber) <- defaults$labelNumber
   svalue(opts$MS1PlotType) <- ifelse(defaults$MS1PlotType=="h", "", " ")
   svalue(opts$MS2PlotType) <- ifelse(defaults$MS2PlotType=="h", "", " ")
-  svalue(opts$chromaMode) <- ifelse(defaults$chromaMode, "Total ion count", 
-                                    "Base peak intensity")
+  svalue(opts$chromaMode) <- ifelse(defaults$chromaMode, "Base peak intensity", 
+                                    "Total ion count")
+  svalue(opts$Da) <- defaults$Da
+  svalue(opts$RtFormat) <- defaults$RtFormat
 }
 
 drawOptions <- function (h, ...) {
@@ -607,13 +609,13 @@ drawOptions <- function (h, ...) {
   
   env$optionsWindowClosed <- FALSE
   
-  env$optsWindow <- gwindow("Options", visible=FALSE, height=50, width=50, 
+  env$optsWindow <- gwindow("Settings", visible=FALSE, height=50, width=50, 
                             parent=msGUIWindow, handler=function(h, ...) 
                               env$optionsWindowClosed <- TRUE)
   env$optsGroup <- ggroup(container=optsWindow, horizontal=FALSE)
   env$l <- glayout(container=optsGroup, homogeneous=TRUE, spacing=30)
-  env$l[1, 1] <- (env$l1 <- glayout(container=l, spacing=2))
-  env$l[1, 2] <- (env$l2 <- glayout(container=l, spacing=2))
+  env$l[1, 1] <- (env$l1 <- glayout(container=l, spacing=settings$uiGridSpacing))
+  env$l[1, 2] <- (env$l2 <- glayout(container=l, spacing=settings$uiGridSpacing))
   
   env$l1[1, 1:3] <- (env$opts$headings$t1 <- glabel("Graph sizes", container=l1))
   env$l1[2, 2, anchor=c(0, 0)] <- (env$opts$text$t1 <- glabel("height", container=l1))  
@@ -624,22 +626,32 @@ drawOptions <- function (h, ...) {
   env$l1[3, 3] <- (env$opts$width <- gspinbutton(from=500, to=800, by=10, 
                                                  value=settings$width, digits=0, 
                                                  container=l1))
-  env$l1[3, 1, anchor=c(-1, 0)] <- (env$opts$text$t1 <- glabel("Spectrum graph", 
-                                                                 container=l1))
+  env$l1[3, 1, anchor=c(-1, 0)] <- (env$opts$text$t1 <- glabel("Spectrum", 
+                                                               container=l1))
   env$l1[4, 1, anchor=c(-1, 0)] <- (env$opts$text$t2 <- glabel("Chromatogram", 
-                                                                 container=l1))
+                                                               container=l1))
   env$l1[4, 2] <- (env$opts$chromaHeight <- gspinbutton(from=250, to=500, by=10, 
                                                         value=settings$chromaHeight, 
                                                         digits=0, container=l1))  
   i <- 5
   
   env$l1[i, 1:3] <- (env$opts$separator$t1 <- glabel("", container=l1))
-  env$l1[i + 1, 1:3] <- (env$opts$headings$t3 <- glabel("Labels", container=l1))
-  env$l1[i + 2, 1:2] <- (env$opts$text$t3 <- glabel("Number of peaks to label", 
-                                                    container=l1))
-  env$l1[i + 2, 3] <- (env$opts$labelNumber <- gedit(settings$labelNumber, 
+  env$l1[i + 1, 1:2, anchor=c(-1, 0)] <- (env$opts$text$t3 <- glabel("Number of peaks to label", 
+                                                                     container=l1))
+  env$l1[i + 1, 3] <- (env$opts$labelNumber <- gedit(settings$labelNumber, 
                                                      coerce.with=as.numeric, 
                                                      width=2, container=l1))
+  env$l1[i + 2, 1:2, anchor=c(-1, 0)] <- (env$opts$text$t16 <- glabel("Da size", 
+                                                                      container=l1))
+  env$l1[i + 2, 3] <- (env$opts$Da <- gedit(settings$Da, 
+                                            coerce.with=as.numeric, 
+                                            width=2, container=l1))
+  env$l1[i + 3, 1, anchor=c(-1, 0)] <- (env$opts$text$t17 <- glabel("Rt format", 
+                                                                    container=l1))
+  env$l1[i + 3, 2:3] <- (env$opts$RtFormat <- gdroplist(settings$RtFormats, 
+                                                        match(settings$RtFormat, settings$RtFormats),  
+                                                        container=l1))  
+  env$l1[i + 4, 1:3] <- (env$opts$separator$t2 <- glabel("", container=l1))
   
   env$l2[1, 1:3] <- (env$opts$headings$t2 <- glabel("MS mode", container=l2))
   env$l2[2, 2, anchor=c(1, 0)] <- (env$opts$text$t4 <- glabel("MS1     ", container=l2))
@@ -655,14 +667,14 @@ drawOptions <- function (h, ...) {
   
   i <- 5
   
-  env$l2[i, 1:3] <- (env$opts$separator$t2 <- glabel("", container=l2))
+  env$l2[i, 1:3] <- (env$opts$separator$t3 <- glabel("", container=l2))
   env$l2[i + 1, 1:3] <- (env$opts$headings$t4 <- glabel("Chromatogram mode", 
                                                         container=l2))
   env$l2[i + 2, 1:3] <- (env$opts$chromaMode <- gradio(c("Total ion count", 
-                                                               "Base peak intensity"), 
+                                                         "Base peak intensity"), 
                                                        ifelse(settings$chromaMode, 2, 1), 
                                                        container=l2))
-  env$l2[i + 3, 1:3] <- (env$opts$separator$t3 <- glabel("", container=l2))
+  env$l2[i + 3, 1:3] <- (env$opts$separator$t4 <- glabel("", container=l2))
   
   env$optsButtons <- ggroup(container=optsGroup, horizontal=TRUE)
   env$opts$defaults <- gbutton("Restore defaults", container=optsButtons, 
@@ -677,8 +689,10 @@ drawOptions <- function (h, ...) {
              settings$labelNumber!=svalue(opts$labelNumber), 
              settings$MS1PlotType!=ifelse(svalue(opts$MS1PlotType)=="", "h", "l"), 
              settings$MS2PlotType!=ifelse(svalue(opts$MS2PlotType)=="", "h", "l"), 
-             settings$chromaMode!=(svalue(opts$chromaMode)=="Base peak intensity")
-             ))) {
+             settings$chromaMode!=(svalue(opts$chromaMode)=="Base peak intensity"), 
+             settings$Da!=svalue(opts$Da), 
+             settings$RtFormat!=svalue(opts$RtFormat)
+    ))) {
       if(verbose) cat("Applying changes...\n")
       settings$spectrumHeight <- svalue(opts$spectrumHeight)
       settings$chromaHeight <- svalue(opts$chromaHeight)
@@ -687,6 +701,18 @@ drawOptions <- function (h, ...) {
       settings$MS1PlotType <- ifelse(svalue(opts$MS1PlotType)=="", "h", "l")
       settings$MS2PlotType <- ifelse(svalue(opts$MS2PlotType)=="", "h", "l")
       settings$chromaMode <- (svalue(opts$chromaMode)=="Base peak intensity")
+      settings$Da <- svalue(opts$Da)
+      prevRtFormat <- settings$RtFormat
+      settings$RtFormat <- svalue(opts$RtFormat)
+      
+      updateExperimentInfo()
+      blockFilters()
+      svalue(filterInfo$rt$from) <-formatRt2(deformatRt(svalue(filterInfo$rt$from), 
+                                                        prevRtFormat))
+      svalue(env$filterInfo$rt$to) <-formatRt2(deformatRt(svalue(filterInfo$rt$to), 
+                                                          prevRtFormat))
+      saveFilterValues()
+      blockFilters(FALSE)
       
       size(plotTop) <- c(settings$width, settings$spectrumHeight)
       size(plotBottom) <- c(settings$width, settings$chromaHeight)
@@ -707,7 +733,7 @@ drawOptions <- function (h, ...) {
                              handler=function(h, ...) dispose(env$optsWindow))
   addSpace(env$optsButtons, 18)
   
-  lapply(opts$headings, setFont, settings$fontHead)
+  lapply(opts$headings, setFont, settings$fontHead2)
   
   visible(env$optsWindow) <- TRUE
 }

@@ -6,7 +6,7 @@ defaultSettings <- function() {
   digits <- 2
   
   labelNumber <- 5
-  labelThreshold <- 2
+  Da <- 2
   
   MS1PlotType <- "l"
   MS2PlotType <- "h"
@@ -15,15 +15,19 @@ defaultSettings <- function() {
   spectrumHeight <- 250
   width <- 500
   
-  RtFormat <- "minutes:seconds" # c("minutes:seconds", "seconds", "minutes")
+  RtFormat <- "minutes:seconds" 
+  RtFormats <- c("minutes:seconds", "minutes", "seconds")
   
   chromaMode <- FALSE # i.e. total ion count is the default
   
   # Fonts
   fontHead <- list(weight="bold", family="sans", size=12, color="grey25")
+  fontHead2 <- list(family="sans", size=10, color="grey10")
   fontReg <- list(weight="light", family="sans", size=8, color="grey05")
   fontRegGrey <- list(weight="light", family="sans", size=8, color="grey50")
   fontDeemp <- list(weight="light", family="sans", size=8, color="grey50")
+  
+  uiGridSpacing <- 1
   
   return(environment())
 }
