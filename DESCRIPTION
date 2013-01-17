@@ -12,6 +12,5 @@ Description: msGUI is a simple graphical user interface
 	     level spectra as well as displaying extracted 
 	     ion chromatograms.
 Depends: mzR, MSnbase, methods
-Imports: png, gWidgets, gWidgetsRGtk2
-Suggests: cairoDevice
+Imports: png, gWidgets, gWidgetsRGtk2, cairoDevice
 License: Artistic-2.0
