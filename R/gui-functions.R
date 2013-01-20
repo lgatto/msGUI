@@ -746,3 +746,4 @@ drawOptions <- function (h, ...) {
 setFont <- function(x, style) font(x) <- style
 
 same <- function(h) abs(h$x[1]-h$x[2]) < 1/200 & abs(h$y[1]-h$y[2]) < 1/200
+
