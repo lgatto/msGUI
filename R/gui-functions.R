@@ -219,9 +219,9 @@ openFileHandler <- function(h, ...) {
       visible(env$plotBottom) <- TRUE
       plotMsg()
     }
-    if (verbose) cat("Loading file...   ")
+    if (env$verbose) cat("Loading file...   ")
     makeMzRrampAccessors(filename, env)
-    if (verbose) cat("done\n")
+    if (env$verbose) cat("done\n")
     updateExperiment(env)    
     env$experimentLoaded <- TRUE
   }
@@ -540,8 +540,9 @@ openObject <- function(object, env) {
 }
 
 drawVarBrowser <- function(h, ...) {
+  env <- h$action
   windowVB <- gwindow(title="Browse R objects", visible=FALSE, 
-                      width=400, height=300, parent=msGUIWindow)
+                      width=400, height=300, parent=env$msGUIWindow)
   panelVB <- ggroup(container=windowVB, horizontal=FALSE, expand=TRUE)
   panelVBtop <- ggroup(container=panelVB)
   panelVBmiddle <- ggroup(container=panelVB, expand=TRUE)
