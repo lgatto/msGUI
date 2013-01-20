@@ -41,7 +41,6 @@ wrapper <- function(filename=NULL, object=NULL, device="png", verbose=FALSE) {
 }
 
 formatRt2 <- function(x, format, digits) {
-  print(digits)
   switch(format, 
          "minutes:seconds" = formatRt(x), 
          "minutes" = round(x/60, digits=digits), 
