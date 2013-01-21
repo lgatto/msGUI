@@ -347,9 +347,14 @@ drawMain <- function(env) {
   
   env$le[i + 7, 1:5] <- (env$separator$t3 <- glabel("", container=env$le))
   
-  env$le[i + 8, 1, anchor=c(-1,0)] <- (env$regular$t12 <- glabel("Display MS levels", container=env$le))
-  env$le[i + 8, 2] <- (env$filterInfoMS$ms1 <- gcheckbox("MS1", checked=TRUE, container=env$le))
-  env$le[i + 8, 3] <- (env$filterInfoMS$ms2 <- gcheckbox("MS2", checked=TRUE, container=env$le))
+  env$le[i + 8, 1, anchor=c(-1,0)] <- (env$regular$t12 <- glabel("Display MS levels", 
+                                                                 container=env$le))
+  env$le[i + 8, 2] <- (env$filterInfoMS$ms1 <- gcheckbox("MS1", checked=TRUE, 
+                                                         container=env$le, 
+                                                         use.togglebutton=TRUE))
+  env$le[i + 8, 3] <- (env$filterInfoMS$ms2 <- gcheckbox("MS2", checked=TRUE, 
+                                                         container=env$le, 
+                                                         use.togglebutton=TRUE))
   
   env$le[i + 9, 1:5] <- (env$separator$t9 <- glabel("", container=env$le))
   
