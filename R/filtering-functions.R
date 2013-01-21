@@ -150,11 +150,11 @@ filterSpectra <- function(h, ...) {
                             function(i) enabled(i) <- ms2))
   
   # Filter spectra
-  keep <- mapply(function(data, obj, detransform) {
+  keep <- mapply(function(data, obj, detransform, format) {
     if(svalue(obj$active)) {
-      btwn(data, detransform(svalue(obj$from)), detransform(svalue(obj$to)))
+      btwn(data, detransform(svalue(obj$from), format), detransform(svalue(obj$to), format))
     } else rep(TRUE, env$nSpectra)
-  }, env$filterData, env$filterInfo, env$filterDetransform)
+  }, env$filterData, env$filterInfo, env$filterDetransform, env$settings$RtFormat)
   
   colnames(keep) <- names(env$filterInfo)
   
