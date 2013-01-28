@@ -351,10 +351,10 @@ drawMain <- function(env) {
                                                                  container=env$le))
   env$le[i + 8, 2] <- (env$filterInfoMS$ms1 <- gcheckbox("MS1", checked=TRUE, 
                                                          container=env$le, 
-                                                         use.togglebutton=TRUE))
+                                                         use.togglebutton=FALSE))
   env$le[i + 8, 3] <- (env$filterInfoMS$ms2 <- gcheckbox("MS2", checked=TRUE, 
                                                          container=env$le, 
-                                                         use.togglebutton=TRUE))
+                                                         use.togglebutton=FALSE))
   
   env$le[i + 9, 1:5] <- (env$separator$t9 <- glabel("", container=env$le))
   
