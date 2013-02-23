@@ -143,6 +143,10 @@ filterSpectra <- function(h, ...) {
   if(!svalue(env$filterInfoMS$ms1) & !env$filterValuesMS$ms2) svalue(env$filterInfoMS$ms2) <- TRUE
   if(!svalue(env$filterInfoMS$ms2) & !env$filterValuesMS$ms1) svalue(env$filterInfoMS$ms1) <- TRUE 
   
+  # Bold selected checkbox to increase visual clarity of togglebuttons (issue #14)  
+  setFontGtk(env$filterInfoMS$ms1, list(color=ifelse(svalue(env$filterInfoMS$ms1), "grey05", "grey50")))
+  setFontGtk(env$filterInfoMS$ms2, list(color=ifelse(svalue(env$filterInfoMS$ms2), "grey05", "grey50")))
+  
   # Disable precursor-related filters when only MS1 are selected
   ms2 <- svalue(env$filterInfoMS$ms2)
   lapply(env$filterInfo[c("pmz", "spi", "pc", "mass")], 

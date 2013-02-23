@@ -351,10 +351,10 @@ drawMain <- function(env) {
                                                                  container=env$le))
   env$le[i + 8, 2] <- (env$filterInfoMS$ms1 <- gcheckbox("MS1", checked=TRUE, 
                                                          container=env$le, 
-                                                         use.togglebutton=FALSE))
+                                                         use.togglebutton=TRUE))
   env$le[i + 8, 3] <- (env$filterInfoMS$ms2 <- gcheckbox("MS2", checked=TRUE, 
                                                          container=env$le, 
-                                                         use.togglebutton=FALSE))
+                                                         use.togglebutton=TRUE))
   
   env$le[i + 9, 1:5] <- (env$separator$t9 <- glabel("", container=env$le))
   
@@ -751,3 +751,21 @@ setFont <- function(x, style) font(x) <- style
 
 same <- function(h) abs(h$x[1]-h$x[2]) < 1/200 & abs(h$y[1]-h$y[2]) < 1/200
 
+# Workaround for widget styling. Hat tip to J Verzani: http://stackoverflow.com/questions/14940349/how-to-set-font-for-a-gcheckbox-object/
+setFontGtk <- function(object, spec) {
+  require(RGtk2)
+  widget <- getToolkitWidget(object)$getChildren()[[1]]
+  font_descr <- pangoFontDescriptionNew()
+  if(!is.null(spec$weight))
+    font_descr$setWeight(PangoWeight[spec$weight])
+  if(!is.null(spec$style))
+    font_descr$setStyle(PangoStyle[spec$style])
+  if(!is.null(spec$scale))
+    font_descr$setSize(spec$scale * PANGO_SCALE)
+  if(!is.null(spec$family))
+    font_descr$setFamily(spec$family)
+  widget$modifyFont(font_descr)
+  
+  if(!is.null(spec$color))
+    widget$modifyFg(GtkStateType[1], spec$color)
+}
