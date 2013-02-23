@@ -390,6 +390,8 @@ drawMain <- function(env) {
   lapply(env$specPrecInfo, setFont, env$settings$fontReg)
   lapply(env$filterInfo, function(x) lapply(x, setFont, env$settings$fontReg)) 
   lapply(env$filterInfoXIC, function(x) lapply(x, setFont, env$settings$fontReg)) 
+  lapply(env$filterInfo, function(x) setFontGtk(x$active, env$settings$fontReg)) 
+  lapply(env$filterInfoXIC, function(x) setFontGtk(x$active, env$settings$fontReg))
   
   # Zoom handlers and GUI functions  
   drawZoom <- function(env) {    
@@ -760,8 +762,8 @@ setFontGtk <- function(object, spec) {
     font_descr$setWeight(PangoWeight[spec$weight])
   if(!is.null(spec$style))
     font_descr$setStyle(PangoStyle[spec$style])
-  if(!is.null(spec$scale))
-    font_descr$setSize(spec$scale * PANGO_SCALE)
+  if(!is.null(spec$size))
+    font_descr$setSize(spec$size * PANGO_SCALE)
   if(!is.null(spec$family))
     font_descr$setFamily(spec$family)
   widget$modifyFont(font_descr)
