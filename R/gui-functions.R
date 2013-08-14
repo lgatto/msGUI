@@ -12,6 +12,7 @@ wrapper <- function(filename=NULL, object=NULL, device="png", verbose=FALSE) {
   env$experimentLoaded <- FALSE
   env$closingMsGUI <- FALSE
   env$forceRedraw <- FALSE
+  env$clickMode <- TRUE
   drawMain(env)
   visible(env$msGUIWindow) <- TRUE  
   visible(env$plotTop) <- TRUE
@@ -271,6 +272,7 @@ drawMain <- function(env) {
   env$filterInfo <- list()
   env$filterInfoMS <- list()
   env$filterInfoXIC <- list()
+  env$tools <- list()
   
   # Left pane content  
   env$le <- glayout(container=env$groupMiddleLeft, spacing=env$settings$uiGridSpacing)
@@ -363,6 +365,17 @@ drawMain <- function(env) {
   env$le[i + 10, 3, anchor=c(-1, 0)] <- (env$filterInfoXIC$XIC$text <- glabel("+/-.5 Da", container=env$le))
   
   env$le[i + 11, 1:5] <- (env$separator$t19 <- glabel("", container=env$le))
+  
+  # Tools  
+  env$le[i + 12, 1] <- (env$headings$t37 <- glabel("Tools", container=env$le))
+
+  env$groupClickMode <- ggroup(container=env$groupMiddleLeft)
+  env$tools$zoom <- gcheckbox("Zoom", checked=env$clickMode, 
+                              container=env$groupClickMode, 
+                              use.togglebutton=TRUE)
+  env$tools$integrate <- gcheckbox("Integrate", checked=!env$clickMode, 
+                                   container=env$groupClickMode, 
+                                   use.togglebutton=TRUE)
   
   # Buttons  
   addSpring(env$groupMiddleLeft)
@@ -502,6 +515,15 @@ drawMain <- function(env) {
     clickSwitch(TRUE, env)   
   }
   
+  handlerClickMode <- function(h, ...) {
+    mapply(blockHandler, env$tools, env$toolsHandlerIDs)
+    env <- h$action
+    env$clickMode <- !env$clickMode
+    svalue(env$tools$zoom) <- env$clickMode
+    svalue(env$tools$integrate) <- !env$clickMode
+    mapply(unblockHandler, env$tools, env$toolsHandlerIDs)
+  }
+  
   env$clickHandlerIDs <- list()
   env$clickHandlerIDs[[1]] <- addHandlerChanged(env$plotTop, handler=handlerClickSpectrum, action=env)
   env$clickHandlerIDs[[2]] <- addHandlerChanged(env$plotBottom, handler=handlerClickXIC, action=env)
@@ -515,6 +537,8 @@ drawMain <- function(env) {
   env$filterXICHandlerIDs <- lapply(env$filterInfoXIC, 
                                     function(i) lapply(i, addHandlerChanged, 
                                                        handler=filterSpectra, action=env))
+  env$toolsHandlerIDs <- lapply(env$tools, addHandlerChanged, 
+                                handler=handlerClickMode, action=env)
 }
 
 getObjects <- function(classes="All classes") {
