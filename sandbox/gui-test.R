@@ -12,6 +12,7 @@ source("R/filtering-functions.R")
 source("R/plot-functions.R")
 source("R/cache-functions.R")
 source("R/msGUI.R")
+source("R/defaults.R")
 
 filename <- "/media/Data/GitHub/msGUI/sandbox/TMT_Erwinia_1uLSike_Top10HCD_isol2_45stepped_60min_01.mzXML"
 
