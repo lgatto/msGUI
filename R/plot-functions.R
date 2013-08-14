@@ -4,25 +4,25 @@ plotMsg <- function(message="Nothing to display", col="grey50") {
   text(.5, .5, labels=message, cex=.65, col=col)
 }
 
-plotXIC <- function(zoom=NULL, noCache=FALSE, env)
-  plotGeneric(zoom=zoom, cacheName="xic", 
+plotXIC <- function(zoom=NULL, int=NULL, noCache=FALSE, env)
+  plotGeneric(zoom=zoom, int=int, cacheName="xic", 
               height=env$settings$chromaHeight, width=env$settings$width, 
               fun=plotChromatogram, plotObject=env$plotBottom, noCache=noCache, 
               name="chromatogram", env=env)
 
-plotSpectrum <- function(zoom=NULL, noCache=FALSE, env) 
-  plotGeneric(zoom=zoom, cacheName="spectra", 
+plotSpectrum <- function(zoom=NULL, int=NULL, noCache=FALSE, env) 
+  plotGeneric(zoom=zoom, int=int, cacheName="spectra", 
               height=env$settings$spectrumHeight, width=env$settings$width, 
               fun=plotSpectrumGraph, plotObject=env$plotTop, noCache=noCache, 
               name="spectrum", env=env)
 
-plotGeneric <- function(zoom=NULL, cache, cacheName, height, width, fun, 
+plotGeneric <- function(zoom=NULL, int=NULL, cache, cacheName, height, width, fun, 
                         plotObject, noCache=FALSE, name, env) {
   
   if(env$device=="png") {
 
-    if(is.null(env$cache[[cacheName]][[env$index]]) | !is.null(zoom) | noCache) {
-      if(is.null(zoom) & env$verbose) cat("caching", name, env$index, "\n")
+    if(is.null(env$cache[[cacheName]][[env$index]]) | !is.null(zoom) | !is.null(int) | noCache) {
+      if(is.null(zoom) & is.null(int) & env$verbose) cat("caching", name, env$index, "\n")
       
       time <- proc.time()
       
@@ -31,9 +31,9 @@ plotGeneric <- function(zoom=NULL, cache, cacheName, height, width, fun,
         png(filename, width=env$settings$width, height=env$settings$spectrumHeight, restoreConsole=FALSE)
       else 
         png(filename, width=env$settings$width, height=env$settings$spectrumHeight)  
-      fun(zoom=zoom, env=env)    
+      fun(zoom=zoom, int=int, env=env)    
       dev.off()    
-      if(is.null(zoom) & !noCache) env$cache[[cacheName]][[env$index]] <- filename
+      if(is.null(zoom) & is.null(int) & !noCache) env$cache[[cacheName]][[env$index]] <- filename
       
     } else filename <- env$cache[[cacheName]][[env$index]]
     
@@ -47,13 +47,13 @@ plotGeneric <- function(zoom=NULL, cache, cacheName, height, width, fun,
   } else if(env$device=="cairo") {
     
     visible(env$plotObject) <- TRUE 
-    fun(zoom=zoom)    
+    fun(zoom=zoom, int=int)    
     
   } 
   
 }
 
-plotChromatogram <- function(zoom=NULL, env) {
+plotChromatogram <- function(zoom=NULL, int=NULL, env) {
   time <- proc.time()
   
   xic <- env$xic(n=1, env$settings$chromaMode)
@@ -80,7 +80,7 @@ plotChromatogram <- function(zoom=NULL, env) {
     cat("    ", dim(xic)[1], "data points plotted in", (proc.time() - time)[3]*1000, "miliseconds\n")
 }
 
-plotSpectrumGraph <- function(zoom=NULL, env) {
+plotSpectrumGraph <- function(zoom=NULL, int=NULL, env) {
   time <- proc.time()
   MsLevel <- env$spMsLevel(env$index)
   peaks <- env$peaks(env$index)
@@ -106,9 +106,16 @@ plotSpectrumGraph <- function(zoom=NULL, env) {
   
   par(mar=c(3,3,0,1), mgp=c(2,0.45,0), tck=-.01, bty="n", lab=c(5, 3, 7), 
       adj=.5, las=1, cex=0.75)
-  plot(peaks, xlab="Mass to charge ratio (M/Z)", ylab="Intensity", 
-       type = ifelse(MsLevel==1, env$settings$MS1PlotType, env$settings$MS2PlotType), 
+  plot(x=env$xLimits[, MsLevel][1], y=0, xlab="Mass to charge ratio (M/Z)", ylab="Intensity", 
        xlim=env$xLimits[, MsLevel], ylim=c(0, 1.075)) 
+  if(!is.null(int)) {
+    polygon(int$x[c(1, 1, 2, 2, 1)], c(0, 1, 1, 0, 0), 
+          col="lightpink1", border="transparent")
+    text(env$xLimits[, MsLevel][2], 1.075, pos=2, 
+         labels=paste("Integrand:", sum(peaks[peaks[, 1]>=int$x[1] & peaks[, 1]<=int$x[2], 2])))
+  }
+  lines(peaks, 
+        type = ifelse(MsLevel==1, env$settings$MS1PlotType, env$settings$MS2PlotType))
   if (env$settings$labelNumber > 0)
     text(labels, labels=round(labels[, 1], env$settings$digits), 
          col="grey50", adj=c(0, 0))  

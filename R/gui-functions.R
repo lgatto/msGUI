@@ -6,6 +6,7 @@ wrapper <- function(filename=NULL, object=NULL, device="png", verbose=FALSE) {
   env$XICWindowClosed <- TRUE
   env$optionsWindowClosed <- TRUE
   env$spectrumZoom <- NULL
+  env$spectrumInt <- NULL
   env$XICZoom <- NULL
   env$anyMS1spectra <- TRUE
   env$XICvalues <- TRUE
@@ -149,7 +150,7 @@ updateSpectrum <- function(h, ...) {
   buttonSwitch(FALSE, env)
   clickSwitch(FALSE, env)  
   
-  plotSpectrum(env$spectrumZoom, env=env)
+  plotSpectrum(zoom=env$spectrumZoom, int=env$spectrumInt, env=env)
   
   if(!env$zoomWindowClosed) {
     visible(env$plotZoom) <- TRUE      
@@ -453,22 +454,29 @@ drawMain <- function(env) {
   
   handlerClickSpectrum = function(h,...) {
     env <- h$action
-    env$spectrumZoom <- list(x=fixX(h$x, 
+    env$spectrumCoords <- list(x=fixX(h$x, 
                                     env$xLimits[, env$spMsLevel(env$index)][1], 
                                     env$xLimits[, env$spMsLevel(env$index)][2], 
                                     env$settings$width, 
                                     env$device),
                              y=fixY(h$y, 0, 1.05, env$settings$spectrumHeight, 
                                     env$device))
+    
+    if(env$clickMode) {
+      env$spectrumZoom <- env$spectrumCoords
+    } else {
+      env$spectrumInt <- env$spectrumCoords
+    }
                              
     if(env$verbose) cat("coords: x", h$x, "y", h$y, 
                     "  recalculated coords: x", env$spectrumZoom$x, 
                     "y", env$spectrumZoom$y, "\n") 
-    
-    plotSpectrum(zoom=env$spectrumZoom, env=env)
-    if(env$zoomWindowClosed) drawZoom(env)
-    visible(env$plotZoom) <- TRUE
-    plotSpectrumZoom(env$spectrumZoom, env)
+    plotSpectrum(zoom=env$spectrumZoom, int=env$spectrumInt, env=env)
+    if(!is.null(env$spectrumZoom)) {
+      if(env$zoomWindowClosed) drawZoom(env)
+      visible(env$plotZoom) <- TRUE
+      plotSpectrumZoom(env$spectrumZoom, env)
+    }
   }   
   
   handlerClickZoom <- function(h,...) {
