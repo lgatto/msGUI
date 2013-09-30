@@ -229,7 +229,7 @@ filterSpectra <- function(h, ...) {
              title="")
   }
   if(updateXIC) {
-    plotXIC(env$XICZoom, noCache=TRUE, env) 
+    plotXIC(env$XICZoom, NULL, noCache=TRUE, env) 
     if(!env$zoomWindowClosed) {
       visible(env$plotZoom) <- TRUE      
       plotSpectrumZoom(env$spectrumZoom, env)
