@@ -134,9 +134,9 @@ plotSpectrumGraph <- function(zoom=NULL, int=NULL, env) {
     cat("    ", dim(peaks)[1], "data points plotted in", (proc.time() - time)[3]*1000, "miliseconds\n")
 }
 
-plotSpectrumZoom <- function(limits=NULL, env) {
-  
   if(env$verbose) cat("spectrum zoom limits:", limits$x, limits$y, "\n")
+plotSpectrumZoom <- function(limits=NULL, int=NULL, env) {
+  MsLevel <- env$spMsLevel(env$index)
   
   peaks <- env$peaks(env$index)
   peaks[, 2] <- peaks[, 2]/max(peaks[, 2])  
@@ -147,9 +147,15 @@ plotSpectrumZoom <- function(limits=NULL, env) {
   
   par(mar=c(3, 3, 0, 0), mgp=c(2,0.45,0), tck=-.01, bty="n", lab=c(5, 3, 7), 
       adj=.5, las=1, cex=0.65)
-  plot(peaks, xlab="Mass to charge ratio (M/Z)", ylab="Intensity", 
-       type = ifelse(env$spMsLevel(env$index)==1, env$settings$MS1PlotType, 
-                     env$settings$MS2PlotType), xlim=limits$x, ylim=limits$y) 
+  plot(x=env$xLimits[, MsLevel][1], y=0, xlab="Mass to charge ratio (M/Z)", ylab="Intensity", 
+       xlim=limits$x, ylim=limits$y)
+  if(!is.null(int)) {
+    polygon(int$x[c(1, 1, 2, 2, 1)], c(0, 1, 1, 0, 0), 
+            col="lightpink1", border="transparent")
+    text(env$xLimits[, MsLevel][2], 1.075, pos=2, 
+         labels=paste("Integrand:", sum(peaks[peaks[, 1]>=int$x[1] & peaks[, 1]<=int$x[2], 2])))
+  }
+  lines(peaks, type = ifelse(MsLevel==1, env$settings$MS1PlotType, env$settings$MS2PlotType)) 
   if(numberInFocus>0) {    
     labels <- peaks[inFocus, , drop=FALSE]
     labels <- labels[order(labels[, 2], decreasing=TRUE), , drop=FALSE]

@@ -154,7 +154,7 @@ updateSpectrum <- function(h, ...) {
   
   if(!env$zoomWindowClosed) {
     visible(env$plotZoom) <- TRUE      
-    plotSpectrumZoom(env$spectrumZoom, env)
+    plotSpectrumZoom(env$spectrumZoom, env$spectrumInt, env)
   }
   
   if(env$anyMS1spectra) {
@@ -466,7 +466,7 @@ drawMain <- function(env) {
     if(!is.null(env$spectrumZoom)) {
       if(env$zoomWindowClosed) drawZoom(env)
       visible(env$plotZoom) <- TRUE
-      plotSpectrumZoom(env$spectrumZoom, env)
+      plotSpectrumZoom(env$spectrumZoom, env$spectrumInt, env)
     }
   }   
   
@@ -481,7 +481,7 @@ drawMain <- function(env) {
     plotSpectrum(zoom=env$spectrumZoom, int=env$spectrumInt, env=env)
     if(env$zoomWindowClosed) drawZoom(env)
     visible(env$plotZoom) <- TRUE          
-    plotSpectrumZoom(env$spectrumZoom,env)
+    plotSpectrumZoom(env$spectrumZoom, env$spectrumInt, env)
   } 
   
   handlerClickZoomXIC <- function(h, ...) {
@@ -756,7 +756,7 @@ drawOptions <- function (h, ...) {
       size(env$plotBottom) <- c(env$settings$width, env$settings$chromaHeight)
       if(!env$zoomWindowClosed) {
         visible(env$plotZoom) <- TRUE      
-        plotSpectrumZoom(env$spectrumZoom, env)        
+        plotSpectrumZoom(env$spectrumZoom, env$spectrumInt, env)       
       }
       if(!env$XICWindowClosed) {
         visible(env$plotXICw) <- TRUE      
