@@ -8,6 +8,7 @@ wrapper <- function(filename=NULL, object=NULL, device="png", verbose=FALSE) {
   env$spectrumZoom <- NULL
   env$spectrumInt <- NULL
   env$XICZoom <- NULL
+  env$XICInt <- NULL
   env$anyMS1spectra <- TRUE
   env$XICvalues <- TRUE
   env$experimentLoaded <- FALSE
@@ -158,7 +159,7 @@ updateSpectrum <- function(h, ...) {
   }
   
   if(env$anyMS1spectra) {
-    plotXIC(env$XICZoom, env=env) 
+    plotXIC(env$XICZoom, env$XICInt, env=env) 
     if(!env$XICWindowClosed) {
       visible(env$plotXICw) <- TRUE      
       plotChromaZoom(env)
@@ -486,9 +487,15 @@ drawMain <- function(env) {
   
   handlerClickZoomXIC <- function(h, ...) {
     env <- h$action
+    coords <- h[c("x", "y")]
     if(env$verbose) cat("coords: x", h$x, "y", h$y, "\n")
-    env$XICZoom <- h    
-    plotXIC(zoom=h, env=env)    
+    if(env$clickMode) {
+      env$XICZoom <- coords
+    } else {
+      env$XICInt <- coords
+    }
+#     env$XICZoom <- h    
+    plotXIC(zoom=env$XICZoom, int=env$XICInt, env=env)    
     if(env$XICWindowClosed) drawZoomXIC(env)
     visible(env$plotXICw) <- TRUE          
     plotChromaZoom(env)
@@ -508,12 +515,17 @@ drawMain <- function(env) {
       # update graphs if index has changed
       if(prevCounter!=env$counter) updateSpectrum(h=list(action=list(0, env)))       
     } else {
-      env$XICZoom$x <- fixX(h$x, xicRangeX[1], xicRangeX[2], env$settings$width, env$device)
-      env$XICZoom$y <- fixY(h$y, 0, 1.05, env$settings$chromaHeight, env$device)       
+      coords <- list(x=fixX(h$x, xicRangeX[1], xicRangeX[2], env$settings$width, env$device), 
+                     y=fixY(h$y, 0, 1.05, env$settings$chromaHeight, env$device))
+      if(env$clickMode) {
+        env$XICZoom <- coords
+      } else {
+        env$XICInt <- coords
+      }
       if (env$XICWindowClosed) drawZoomXIC(env)
       visible(env$plotXICw) <- TRUE
       plotChromaZoom(env)
-      plotXIC(env$XICZoom, env=env)
+      plotXIC(env$XICZoom, env$XICInt, env=env)
     }        
     clickSwitch(TRUE, env)   
   }

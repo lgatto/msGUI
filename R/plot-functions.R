@@ -63,9 +63,18 @@ plotChromatogram <- function(zoom=NULL, int=NULL, env) {
   xic[, 2] <- xic[, 2]/maxTotalIons
   par(mar=c(3,3,0,1), mgp=c(2,0.45,0), tck=-.01, bty="n", lab=c(5, 3, 7), 
       adj=.5, las=1, cex=0.75)
-  plot(xic, type = "h", ylim=c(0, 1.075), xlab="Retention time", xlim=env$xLimitsXIC, 
+  
+  plot(xic[1, ], type = "h", ylim=c(0, 1.075), xlab="Retention time", xlim=env$xLimitsXIC, 
        ylab=ifelse(env$settings$chromaMode, "Base peak intensity", "Total ion count"), 
        xaxt = "n")
+  if(!is.null(int)) {
+    polygon(int$x[c(1, 1, 2, 2, 1)], c(0, 1, 1, 0, 0), 
+            col="lightpink1", border="transparent")
+    text(max(xic[, 1]), 1.075, pos=2, 
+         labels=paste("Integrand:", sum(xic[xic[, 1]>=int$x[1] & xic[, 1]<=int$x[2], 2])))
+  }
+  lines(xic, type = "h")
+  
   axis(1, at=axTicks(1), labels=formatRt2(axTicks(1), env$settings$RtFormat, env$settings$digits))
   lines(x=rep(env$spRtime(env$index), 2), y=c(0, 1), col="red", lty=3)
   text(x=env$xLimitsXIC[1], y=1.075, adj=0, 
@@ -134,7 +143,6 @@ plotSpectrumGraph <- function(zoom=NULL, int=NULL, env) {
     cat("    ", dim(peaks)[1], "data points plotted in", (proc.time() - time)[3]*1000, "miliseconds\n")
 }
 
-  if(env$verbose) cat("spectrum zoom limits:", limits$x, limits$y, "\n")
 plotSpectrumZoom <- function(limits=NULL, int=NULL, env) {
   MsLevel <- env$spMsLevel(env$index)
   
@@ -152,8 +160,6 @@ plotSpectrumZoom <- function(limits=NULL, int=NULL, env) {
   if(!is.null(int)) {
     polygon(int$x[c(1, 1, 2, 2, 1)], c(0, 1, 1, 0, 0), 
             col="lightpink1", border="transparent")
-    text(env$xLimits[, MsLevel][2], 1.075, pos=2, 
-         labels=paste("Integrand:", sum(peaks[peaks[, 1]>=int$x[1] & peaks[, 1]<=int$x[2], 2])))
   }
   lines(peaks, type = ifelse(MsLevel==1, env$settings$MS1PlotType, env$settings$MS2PlotType)) 
   if(numberInFocus>0) {    
@@ -177,9 +183,15 @@ plotChromaZoom <- function(env) {
   
   par(mar=c(3, 3, 0, 0), mgp=c(2,0.45,0), tck=-.01, bty="n", lab=c(5, 3, 7), 
       adj=.5, las=1, cex=0.65)
-  plot(xic, type = "h", xlim=env$XICZoom$x, ylim=env$XICZoom$y, xaxt = 'n',
-       xlab="Retention time", 
-       ylab=ifelse(env$settings$chromaMode, "Base peak intensity", "Total ion count"))
+  
+  plot(xic[1, ], type = "h", ylim=env$XICZoom$y, xlab="Retention time", xlim=env$XICZoom$x, 
+       ylab=ifelse(env$settings$chromaMode, "Base peak intensity", "Total ion count"), 
+       xaxt = "n")
+  if(!is.null(env$XICInt)) {
+    polygon(env$XICInt$x[c(1, 1, 2, 2, 1)], c(0, 1, 1, 0, 0), 
+            col="lightpink1", border="transparent")
+  }
+  lines(xic, type = "h")
   axis(1, at=axTicks(1), labels=formatRt2(axTicks(1), env$settings$RtFormat, env$settings$digits))
   abline(h=0, col="grey50")
 }
