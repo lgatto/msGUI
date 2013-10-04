@@ -454,23 +454,14 @@ drawMain <- function(env) {
   
   handlerClickSpectrum = function(h,...) {
     env <- h$action
-    env$spectrumCoords <- list(x=fixX(h$x, 
-                                    env$xLimits[, env$spMsLevel(env$index)][1], 
-                                    env$xLimits[, env$spMsLevel(env$index)][2], 
-                                    env$settings$width, 
-                                    env$device),
-                             y=fixY(h$y, 0, 1.05, env$settings$spectrumHeight, 
-                                    env$device))
-    
+    xlim <- env$xLimits[, env$spMsLevel(env$index)];
+    coords <- list(x=fixX(h$x, xlim[1], xlim[2], env$settings$width, env$device),
+                   y=fixY(h$y, 0, 1.05, env$settings$spectrumHeight, env$device))
     if(env$clickMode) {
-      env$spectrumZoom <- env$spectrumCoords
+      env$spectrumZoom <- coords
     } else {
-      env$spectrumInt <- env$spectrumCoords
+      env$spectrumInt <- coords
     }
-                             
-    if(env$verbose) cat("coords: x", h$x, "y", h$y, 
-                    "  recalculated coords: x", env$spectrumZoom$x, 
-                    "y", env$spectrumZoom$y, "\n") 
     plotSpectrum(zoom=env$spectrumZoom, int=env$spectrumInt, env=env)
     if(!is.null(env$spectrumZoom)) {
       if(env$zoomWindowClosed) drawZoom(env)
@@ -481,9 +472,13 @@ drawMain <- function(env) {
   
   handlerClickZoom <- function(h,...) {
     env <- h$action
-    if(env$verbose) cat("coords: x", h$x, "y", h$y, "\n")
-    env$spectrumZoom <- h[c("x", "y")]
-    plotSpectrum(zoom=h, env=env)
+    coords <- h[c("x", "y")]
+    if(env$clickMode) {
+      env$spectrumZoom <- coords
+    } else {
+      env$spectrumInt <- coords
+    }
+    plotSpectrum(zoom=env$spectrumZoom, int=env$spectrumInt, env=env)
     if(env$zoomWindowClosed) drawZoom(env)
     visible(env$plotZoom) <- TRUE          
     plotSpectrumZoom(env$spectrumZoom,env)
