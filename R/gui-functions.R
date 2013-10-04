@@ -447,7 +447,7 @@ drawMain <- function(env) {
   
   fixY <- function(x, lower, upper, height, device) {
     if (device == "png") {
-      x <- ((x + .04) / 1.08 - 40/height) * height / (height - 40 - 22) * (upper - lower) + lower
+      x <- ((x + .02) / 1.08 - 40/height) * height / (height - 40 - 22) * (upper - lower) + lower
       sapply(sapply(x, max, lower), min, upper)
     } else x
   }  
