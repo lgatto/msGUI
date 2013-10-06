@@ -522,9 +522,12 @@ drawMain <- function(env) {
       } else {
         env$XICInt <- coords
       }
-      if (env$XICWindowClosed) drawZoomXIC(env)
-      visible(env$plotXICw) <- TRUE
-      plotChromaZoom(env)
+      if (env$XICWindowClosed & env$clickMode) {
+        drawZoomXIC(env) 
+        # & env$clickMode prevents the zoom window opening in integration mode. 
+        visible(env$plotXICw) <- TRUE
+        plotChromaZoom(env)
+      }
       plotXIC(env$XICZoom, env$XICInt, env=env)
     }        
     clickSwitch(TRUE, env)   
