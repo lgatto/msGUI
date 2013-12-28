@@ -82,10 +82,14 @@ updateExperiment <- function(env) {
   env$filterNames <- c("Retention time", "Index", "Prec MZ", "Prec intensity", 
                        "Prec charge", "Prec mass")
   
-  env$filterData <- list(env$spRtime(), env$spIndex(), env$spPrecMz(), 
-                         env$spPrecInt(), env$spPrecCharge(),
-                         env$spPrecMz()*env$spPrecCharge())
-  # filterData stores data for filters for fast access. 
+  # data cache. 
+  env$filterData <- list(
+    spRtime=env$spRtime(), 
+    spIndex=env$spIndex(), 
+    spPrecMz=env$spPrecMz(), 
+    spPrecInt=env$spPrecInt(), 
+    spPrecCharge=env$spPrecCharge(),
+    spPrecMzTimesSpPrecCharge=env$spPrecMz()*env$spPrecCharge())
   
   env$filterTransform <- list(formatRt2, ident, ident,
                               ident, ident, ident)
@@ -93,10 +97,14 @@ updateExperiment <- function(env) {
                                 as.numeric, as.numeric, as.numeric)
   
   env$nSpectra <- length(env$filterData[[1]])
-  env$xLimits <- sapply(1:2, function(i) if(any(env$spMsLevel()==i)) 
-    c(min(env$spLowMZ()[env$spMsLevel()==i]), 
-      max(env$spHighMZ()[env$spMsLevel()==i])) 
-                        else rep(NA, 2))
+  env$xLimits <- sapply(
+    1:2, 
+    function(i) 
+      if(any(env$spMsLevel()==i)) 
+        c(min(env$spLowMZ()[env$spMsLevel()==i]), 
+          max(env$spHighMZ()[env$spMsLevel()==i])) 
+      else rep(NA, 2)
+    )
   env$anyMS1spectra <- any(env$spMsLevel()==1)
   if(env$anyMS1spectra) {
     dt <- cbind(env$spMsLevel(), env$spPrecMz())
@@ -469,7 +477,42 @@ drawMain <- function(env) {
       visible(env$plotZoom) <- TRUE
       plotSpectrumZoom(env$spectrumZoom, env$spectrumInt, env)
     }
-  }   
+  }  
+  
+  handlerClickXIC <- function(h,...) {
+    env <- h$action
+    clickSwitch(FALSE, env)
+    xicRangeX <- range(env$xic(n=1, FALSE)[, 1])
+    xCoord <- fixX(h$x, xicRangeX[1], xicRangeX[2], env$settings$width, env$device)[2]
+    
+    if (env$verbose) cat("coords: x", h$x, "y", h$y, "recalculated coords", xCoord, "\n")
+    
+    if (same(h[c("x", "y")])) {
+      prevCounter <- env$counter    
+      env$counter <- which.min(abs(env$spRtime(env$currSequence)-xCoord))      
+      # update graphs if index has changed
+      if(prevCounter!=env$counter) updateSpectrum(h=list(action=list(0, env)))       
+    } else {
+      coords <- list(x=fixX(h$x, xicRangeX[1], xicRangeX[2], env$settings$width, env$device), 
+                     y=fixY(h$y, 0, 1.05, env$settings$chromaHeight, env$device))
+      if (env$clickMode) {
+        env$XICZoom <- coords
+      } else {
+        env$XICInt <- coords
+      }
+      if (env$XICWindowClosed & env$clickMode) {
+        drawZoomXIC(env) 
+        # & env$clickMode prevents the zoom window opening in integration mode. 
+        visible(env$plotXICw) <- TRUE
+        plotChromaZoom(env)
+      } else if (!env$XICWindowClosed) {
+        visible(env$plotXICw) <- TRUE
+        plotChromaZoom(env)
+      }
+      plotXIC(env$XICZoom, env$XICInt, env=env)
+    }        
+    clickSwitch(TRUE, env)   
+  } 
   
   handlerClickZoom <- function(h,...) {
     env <- h$action
@@ -499,38 +542,6 @@ drawMain <- function(env) {
     if(env$XICWindowClosed) drawZoomXIC(env)
     visible(env$plotXICw) <- TRUE          
     plotChromaZoom(env)
-  }
-  
-  handlerClickXIC <- function(h,...) {
-    env <- h$action
-    clickSwitch(FALSE, env)
-    xicRangeX <- range(env$xic(n=1, FALSE)[, 1])
-    xCoord <- fixX(h$x, xicRangeX[1], xicRangeX[2], env$settings$width, env$device)[2]
-    
-    if (env$verbose) cat("coords: x", h$x, "y", h$y, "recalculated coords", xCoord, "\n")
-    
-    if (same(h[c("x", "y")])) {
-      prevCounter <- env$counter    
-      env$counter <- which.min(abs(env$spRtime(env$currSequence)-xCoord))      
-      # update graphs if index has changed
-      if(prevCounter!=env$counter) updateSpectrum(h=list(action=list(0, env)))       
-    } else {
-      coords <- list(x=fixX(h$x, xicRangeX[1], xicRangeX[2], env$settings$width, env$device), 
-                     y=fixY(h$y, 0, 1.05, env$settings$chromaHeight, env$device))
-      if(env$clickMode) {
-        env$XICZoom <- coords
-      } else {
-        env$XICInt <- coords
-      }
-      if (env$XICWindowClosed & env$clickMode) {
-        drawZoomXIC(env) 
-        # & env$clickMode prevents the zoom window opening in integration mode. 
-        visible(env$plotXICw) <- TRUE
-        plotChromaZoom(env)
-      }
-      plotXIC(env$XICZoom, env$XICInt, env=env)
-    }        
-    clickSwitch(TRUE, env)   
   }
   
   handlerClickMode <- function(h, ...) {
