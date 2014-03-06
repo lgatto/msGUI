@@ -386,6 +386,19 @@ drawMain <- function(env) {
   env$tools$integrate <- gcheckbox("Integrate", checked=!env$clickMode, 
                                    container=env$groupClickMode, 
                                    use.togglebutton=TRUE)
+
+  addSpring(env$groupClickMode)
+
+  env$reset <- gbutton("Reset", border=FALSE, container=env$groupClickMode, handler=function(h, ...) {
+    if(!is.null(env$spectrumInt)) {
+      env$spectrumInt <- NULL
+      updateSpectrumPlots(env)
+    }
+    if(!is.null(env$XICInt)){
+      env$XICInt <- NULL
+      updateXicPlots(env)
+    }
+  })
   
   # Buttons  
   addSpring(env$groupMiddleLeft)
@@ -471,13 +484,17 @@ drawMain <- function(env) {
     } else {
       env$spectrumInt <- coords
     }
+    updateSpectrumPlots(env)
+  } 
+  
+  updateSpectrumPlots <- function(env) {
     plotSpectrum(zoom=env$spectrumZoom, int=env$spectrumInt, env=env)
     if(!is.null(env$spectrumZoom)) {
       if(env$zoomWindowClosed) drawZoom(env)
       visible(env$plotZoom) <- TRUE
       plotSpectrumZoom(env$spectrumZoom, env$spectrumInt, env)
     }
-  }  
+  }
   
   handlerClickXIC <- function(h,...) {
     env <- h$action
@@ -500,19 +517,23 @@ drawMain <- function(env) {
       } else {
         env$XICInt <- coords
       }
-      if (env$XICWindowClosed & env$clickMode) {
-        drawZoomXIC(env) 
-        # & env$clickMode prevents the zoom window opening in integration mode. 
-        visible(env$plotXICw) <- TRUE
-        plotChromaZoom(env)
-      } else if (!env$XICWindowClosed) {
-        visible(env$plotXICw) <- TRUE
-        plotChromaZoom(env)
-      }
-      plotXIC(env$XICZoom, env$XICInt, env=env)
+      updateXicPlots(env)
     }        
     clickSwitch(TRUE, env)   
   } 
+  
+  updateXicPlots <- function(env) {
+    if (env$XICWindowClosed & env$clickMode) {
+      drawZoomXIC(env) 
+      # & env$clickMode prevents the zoom window opening in integration mode. 
+      visible(env$plotXICw) <- TRUE
+      plotChromaZoom(env)
+    } else if (!env$XICWindowClosed) {
+      visible(env$plotXICw) <- TRUE
+      plotChromaZoom(env)
+    }
+    plotXIC(env$XICZoom, env$XICInt, env=env)
+  }
   
   handlerClickZoom <- function(h,...) {
     env <- h$action
