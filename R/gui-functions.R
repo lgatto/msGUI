@@ -97,21 +97,20 @@ updateExperiment <- function(env) {
                                 as.numeric, as.numeric, as.numeric)
   
   env$nSpectra <- length(env$filterData[[1]])
-  env$xLimits <- sapply(
-    1:2, 
-    function(i) 
-      if(any(env$spMsLevel()==i)) 
-        c(min(env$spLowMZ()[env$spMsLevel()==i]), 
-          max(env$spHighMZ()[env$spMsLevel()==i])) 
-      else rep(NA, 2)
-    )
-  env$anyMS1spectra <- any(env$spMsLevel()==1)
+
+  ms1indices <- which(env$spMsLevel()==1)
+  ms2indices <- which(env$spMsLevel()==2)
+
+  env$anyMS1spectra <- length(ms1indices) > 0
+
+  ms1xlim <- if (any(ms1indices)) c(min(env$spLowMZ()[ms1indices]), max(env$spHighMZ()[ms1indices])) else rep(NA, 2)
+  ms2xlim <- if (any(ms2indices)) c(min(env$spLowMZ()[ms2indices]), max(env$spHighMZ()[ms2indices])) else rep(NA, 2)
+
+  env$xLimits <- cbind(ms1xlim, ms2xlim)
+
   if(env$anyMS1spectra) {
-    dt <- cbind(env$spMsLevel(), env$spPrecMz())
-    where <- which(dt[, 1]==1)
-    frame <- cbind(where[-length(where)] + 1, where[-1] - 1)
+    frame <- cbind(ms1indices[-length(ms1indices)] + 1, ms1indices[-1] - 1)
     env$MS2indices <- frame[frame[, 1] < frame[, 2], ]
-    
     env$xLimitsXIC <- range(env$xic()[, 1])
   } else {
     visible(env$plotBottom) <- TRUE
@@ -377,9 +376,10 @@ drawMain <- function(env) {
   env$le[i + 11, 1:5] <- (env$separator$t19 <- glabel("", container=env$le))
   
   # Tools  
-  env$le[i + 12, 1] <- (env$headings$t37 <- glabel("Tools", container=env$le))
+  env$le[i + 12, 1] <- (env$headings$t37 <- glabel("Mouse tools", container=env$le))
 
-  env$groupClickMode <- ggroup(container=env$groupMiddleLeft)
+  env$le[i + 13, 1:5] <- (env$groupClickMode <- ggroup(container=env$le)) #env$groupMiddleLeft))
+
   env$tools$zoom <- gcheckbox("Zoom", checked=env$clickMode, 
                               container=env$groupClickMode, 
                               use.togglebutton=TRUE)
@@ -487,7 +487,7 @@ drawMain <- function(env) {
     
     if (env$verbose) cat("coords: x", h$x, "y", h$y, "recalculated coords", xCoord, "\n")
     
-    if (same(h[c("x", "y")])) {
+    if (isMouseClick(h[c("x", "y")])) {
       prevCounter <- env$counter    
       env$counter <- which.min(abs(env$spRtime(env$currSequence)-xCoord))      
       # update graphs if index has changed
@@ -804,7 +804,7 @@ drawOptions <- function (h, ...) {
 
 setFont <- function(x, style) font(x) <- style
 
-same <- function(h) abs(h$x[1]-h$x[2]) < 1/200 & abs(h$y[1]-h$y[2]) < 1/200
+isMouseClick <- function(h) abs(h$x[1]-h$x[2]) < 1/200 & abs(h$y[1]-h$y[2]) < 1/200
 
 # Workaround for widget styling. Hat tip to J Verzani: http://stackoverflow.com/questions/14940349/how-to-set-font-for-a-gcheckbox-object/
 setFontGtk <- function(object, spec) {
