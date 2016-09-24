@@ -93,7 +93,7 @@ updateExperiment <- function(env) {
                                 as.numeric, as.numeric, as.numeric)
   
   env$nSpectra <- length(env$filterData[[1]])
-  env$xLimits <- sapply(1:2, function(i) if(any(env$spMsLevel()==i)) 
+  env$xLimits <- sapply(1:3, function(i) if(any(env$spMsLevel()==i)) 
     c(min(env$spLowMZ()[env$spMsLevel()==i]), 
       max(env$spHighMZ()[env$spMsLevel()==i])) 
                         else rep(NA, 2))

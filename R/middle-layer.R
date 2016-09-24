@@ -8,6 +8,7 @@ backends <- c("mzRramp", "MSnExp")
 accessors <- c(## Experiment info
                "expRtRange",
                "nMS1", "nMS2", ## possibly other
+               "nMS3",
                "expPrecMzRange",
                ## Spectrum info
                "spRtime",
@@ -87,9 +88,12 @@ makeMzRrampAccessors <- function(filename, assignEnv) {
   assign("nMS2",
          function(n = 2) sum(dataEnv$hd$msLevel == n),
          pos = assignEnv)
+  assign("nMS3",
+         function(n = 3) sum(dataEnv$hd$msLevel == n),
+         pos = assignEnv)
   ## Spectrum info
   assign("spRtime",
-         function(i) dataEnv$hd[i, "retentionTime"]  ,
+         function(i) dataEnv$hd[i, "retentionTime"],
          pos = assignEnv)
   assign("spIndex",
          function(i) dataEnv$hd[i, "acquisitionNum"],
@@ -98,7 +102,7 @@ makeMzRrampAccessors <- function(filename, assignEnv) {
          function(i) dataEnv$hd[i, "precursorMZ"],
          pos = assignEnv)
   assign("spPrecInt",
-         function(i) dataEnv$hd[i, "precursorIntensity"] ,
+         function(i) dataEnv$hd[i, "precursorIntensity"],
          pos = assignEnv)
   assign("spMsLevel",
          function(i) dataEnv$hd[i, "msLevel"] ,
@@ -201,6 +205,9 @@ makeMSnExpAccessors <- function(object, assignEnv) {
          pos = assignEnv)
   assign("nMS2",
          function(n = 2) sum(dataEnv$hd$ms.level == n),
+         pos = assignEnv)
+  assign("nMS3",
+         function(n = 3) sum(dataEnv$hd$ms.level == n),
          pos = assignEnv)
   ## Spectrum info
   assign("spRtime",
