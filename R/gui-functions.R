@@ -82,10 +82,14 @@ updateExperiment <- function(env) {
   env$filterNames <- c("Retention time", "Index", "Prec MZ", "Prec intensity", 
                        "Prec charge", "Prec mass")
   
-  env$filterData <- list(env$spRtime(), env$spIndex(), env$spPrecMz(), 
-                         env$spPrecInt(), env$spPrecCharge(),
-                         env$spPrecMz()*env$spPrecCharge())
-  # filterData stores data for filters for fast access. 
+  # data cache. 
+  env$filterData <- list(
+    spRtime=env$spRtime(), 
+    spIndex=env$spIndex(), 
+    spPrecMz=env$spPrecMz(), 
+    spPrecInt=env$spPrecInt(), 
+    spPrecCharge=env$spPrecCharge(),
+    spPrecMzTimesSpPrecCharge=env$spPrecMz()*env$spPrecCharge())
   
   env$filterTransform <- list(formatRt2, ident, ident,
                               ident, ident, ident)
@@ -93,17 +97,26 @@ updateExperiment <- function(env) {
                                 as.numeric, as.numeric, as.numeric)
   
   env$nSpectra <- length(env$filterData[[1]])
+
   env$xLimits <- sapply(1:3, function(i) if(any(env$spMsLevel()==i)) 
     c(min(env$spLowMZ()[env$spMsLevel()==i]), 
       max(env$spHighMZ()[env$spMsLevel()==i])) 
                         else rep(NA, 2))
   env$anyMS1spectra <- any(env$spMsLevel()==1)
+
+  ## ms1indices <- which(env$spMsLevel() == 1)
+  ## ms2indices <- which(env$spMsLevel() == 2)
+  ## env$anyMS1spectra <- length(ms1indices) > 0
+  ## ms1xlim <- if (any(ms1indices)) c(min(env$spLowMZ()[ms1indices]), max(env$spHighMZ()[ms1indices])) else rep(NA, 2)
+  ## ms2xlim <- if (any(ms2indices)) c(min(env$spLowMZ()[ms2indices]), max(env$spHighMZ()[ms2indices])) else rep(NA, 2)
+  ## env$xLimits <- cbind(ms1xlim, ms2xlim)
+
   if(env$anyMS1spectra) {
     dt <- cbind(env$spMsLevel(), env$spPrecMz())
     where <- which(dt[, 1]==1)
-    frame <- cbind(where[-length(where)] + 1, where[-1] - 1)
+    frame <- cbind(where[-length(where)] + 1, where[-1] - 1)    
+    ## frame <- cbind(ms1indices[-length(ms1indices)] + 1, ms1indices[-1] - 1)
     env$MS2indices <- frame[frame[, 1] < frame[, 2], ]
-    
     env$xLimitsXIC <- range(env$xic()[, 1])
   } else {
     visible(env$plotBottom) <- TRUE
@@ -369,15 +382,29 @@ drawMain <- function(env) {
   env$le[i + 11, 1:5] <- (env$separator$t19 <- glabel("", container=env$le))
   
   # Tools  
-  env$le[i + 12, 1] <- (env$headings$t37 <- glabel("Tools", container=env$le))
+  env$le[i + 12, 1] <- (env$headings$t37 <- glabel("Mouse tools", container=env$le))
 
-  env$groupClickMode <- ggroup(container=env$groupMiddleLeft)
+  env$le[i + 13, 1:5] <- (env$groupClickMode <- ggroup(container=env$le)) #env$groupMiddleLeft))
+
   env$tools$zoom <- gcheckbox("Zoom", checked=env$clickMode, 
                               container=env$groupClickMode, 
                               use.togglebutton=TRUE)
   env$tools$integrate <- gcheckbox("Integrate", checked=!env$clickMode, 
                                    container=env$groupClickMode, 
                                    use.togglebutton=TRUE)
+
+  addSpring(env$groupClickMode)
+
+  env$reset <- gbutton("Reset", border=FALSE, container=env$groupClickMode, handler=function(h, ...) {
+    if(!is.null(env$spectrumInt)) {
+      env$spectrumInt <- NULL
+      updateSpectrumPlots(env)
+    }
+    if(!is.null(env$XICInt)){
+      env$XICInt <- NULL
+      updateXicPlots(env)
+    }
+  })
   
   # Buttons  
   addSpring(env$groupMiddleLeft)
@@ -463,13 +490,56 @@ drawMain <- function(env) {
     } else {
       env$spectrumInt <- coords
     }
+    updateSpectrumPlots(env)
+  } 
+  
+  updateSpectrumPlots <- function(env) {
     plotSpectrum(zoom=env$spectrumZoom, int=env$spectrumInt, env=env)
     if(!is.null(env$spectrumZoom)) {
       if(env$zoomWindowClosed) drawZoom(env)
       visible(env$plotZoom) <- TRUE
       plotSpectrumZoom(env$spectrumZoom, env$spectrumInt, env)
     }
-  }   
+  }
+  
+  handlerClickXIC <- function(h,...) {
+    env <- h$action
+    clickSwitch(FALSE, env)
+    xicRangeX <- range(env$xic(n=1, FALSE)[, 1])
+    xCoord <- fixX(h$x, xicRangeX[1], xicRangeX[2], env$settings$width, env$device)[2]
+    
+    if (env$verbose) cat("coords: x", h$x, "y", h$y, "recalculated coords", xCoord, "\n")
+    
+    if (isMouseClick(h[c("x", "y")])) {
+      prevCounter <- env$counter    
+      env$counter <- which.min(abs(env$spRtime(env$currSequence)-xCoord))      
+      # update graphs if index has changed
+      if(prevCounter!=env$counter) updateSpectrum(h=list(action=list(0, env)))       
+    } else {
+      coords <- list(x=fixX(h$x, xicRangeX[1], xicRangeX[2], env$settings$width, env$device), 
+                     y=fixY(h$y, 0, 1.05, env$settings$chromaHeight, env$device))
+      if (env$clickMode) {
+        env$XICZoom <- coords
+      } else {
+        env$XICInt <- coords
+      }
+      updateXicPlots(env)
+    }        
+    clickSwitch(TRUE, env)   
+  } 
+  
+  updateXicPlots <- function(env) {
+    if (env$XICWindowClosed & env$clickMode) {
+      drawZoomXIC(env) 
+      # & env$clickMode prevents the zoom window opening in integration mode. 
+      visible(env$plotXICw) <- TRUE
+      plotChromaZoom(env)
+    } else if (!env$XICWindowClosed) {
+      visible(env$plotXICw) <- TRUE
+      plotChromaZoom(env)
+    }
+    plotXIC(env$XICZoom, env$XICInt, env=env)
+  }
   
   handlerClickZoom <- function(h,...) {
     env <- h$action
@@ -499,35 +569,6 @@ drawMain <- function(env) {
     if(env$XICWindowClosed) drawZoomXIC(env)
     visible(env$plotXICw) <- TRUE          
     plotChromaZoom(env)
-  }
-  
-  handlerClickXIC <- function(h,...) {
-    env <- h$action
-    clickSwitch(FALSE, env)
-    xicRangeX <- range(env$xic(n=1, FALSE)[, 1])
-    xCoord <- fixX(h$x, xicRangeX[1], xicRangeX[2], env$settings$width, env$device)[2]
-    
-    if (env$verbose) cat("coords: x", h$x, "y", h$y, "recalculated coords", xCoord, "\n")
-    
-    if (same(h[c("x", "y")])) {
-      prevCounter <- env$counter    
-      env$counter <- which.min(abs(env$spRtime(env$currSequence)-xCoord))      
-      # update graphs if index has changed
-      if(prevCounter!=env$counter) updateSpectrum(h=list(action=list(0, env)))       
-    } else {
-      coords <- list(x=fixX(h$x, xicRangeX[1], xicRangeX[2], env$settings$width, env$device), 
-                     y=fixY(h$y, 0, 1.05, env$settings$chromaHeight, env$device))
-      if(env$clickMode) {
-        env$XICZoom <- coords
-      } else {
-        env$XICInt <- coords
-      }
-      if (env$XICWindowClosed) drawZoomXIC(env)
-      visible(env$plotXICw) <- TRUE
-      plotChromaZoom(env)
-      plotXIC(env$XICZoom, env$XICInt, env=env)
-    }        
-    clickSwitch(TRUE, env)   
   }
   
   handlerClickMode <- function(h, ...) {
@@ -790,7 +831,7 @@ drawOptions <- function (h, ...) {
 
 setFont <- function(x, style) font(x) <- style
 
-same <- function(h) abs(h$x[1]-h$x[2]) < 1/200 & abs(h$y[1]-h$y[2]) < 1/200
+isMouseClick <- function(h) abs(h$x[1]-h$x[2]) < 1/200 & abs(h$y[1]-h$y[2]) < 1/200
 
 # Workaround for widget styling. Hat tip to J Verzani: http://stackoverflow.com/questions/14940349/how-to-set-font-for-a-gcheckbox-object/
 setFontGtk <- function(object, spec) {
